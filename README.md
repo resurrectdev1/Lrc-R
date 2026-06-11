@@ -25,7 +25,7 @@ Simply open Lrc-R and load your audio file, then paste or import your lyrics. Hi
 
 ✏️ **Live Editing:** Reorder lines by dragging, edit text inline, delete lines, and undo any action at any time.
 
-🎨 **Material You Integration:** Supports Android 12+ dynamic coloring, AMOLED black, and a clean light theme alongside the default dark slate.
+🎨 **Material You Integration:** Supports Android 12+ dynamic coloring, AMOLED black, and a clean light theme alongside the default dark blue.
 
 📤 **Flexible Export:** Copy your LRC to clipboard or save the `.lrc` file directly to any path on your device. Timestamp offset support to compensate for playback latency.
 
