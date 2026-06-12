@@ -1,8 +1,7 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LrcLine {
@@ -66,10 +65,7 @@ class MetadataConflict {
 }
 
 class LrcSession extends ChangeNotifier {
-  final _soloud = SoLoud.instance;
-  AudioSource? _source;
-  SoundHandle? _handle;
-  Timer?       _positionTimer;
+  final AudioPlayer _player = AudioPlayer();
 
   String?  audioPath;
   String?  audioName;
@@ -102,59 +98,31 @@ class LrcSession extends ChangeNotifier {
   set album(String v)  => setAlbum(v);
 
   LrcSession() {
-    _initSoloud();
-  }
-
-  Future<void> _initSoloud() async {
-    if (!_soloud.isInitialized) {
-      await _soloud.init();
-    }
-  }
-
-  void _startPositionTimer() {
-    _positionTimer?.cancel();
-    _positionTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      if (_handle == null) return;
-      final pos = _soloud.getPosition(_handle!);
+    _player.onPositionChanged.listen((pos) {
       audioPosition = pos;
-      final playing = !_soloud.getPause(_handle!);
-      if (playing != isPlaying) {
-        isPlaying = playing;
-      }
+      notifyListeners();
+    });
+    _player.onPlayerStateChanged.listen((state) {
+      isPlaying = state == PlayerState.playing;
+      notifyListeners();
+    });
+    _player.onDurationChanged.listen((dur) {
+      audioDuration = dur;
       notifyListeners();
     });
   }
 
-  void _stopPositionTimer() {
-    _positionTimer?.cancel();
-    _positionTimer = null;
-  }
-
   Future<void> loadAudio(String path, String name) async {
-    await unloadAudio();
-    if (!_soloud.isInitialized) await _soloud.init();
     audioPath = path;
     audioName = name;
-    _source = await _soloud.loadFile(path, mode: LoadMode.memory);
-    _handle = await _soloud.play(_source!, paused: true);
-    audioDuration = _soloud.getLength(_source!);
-    audioPosition = Duration.zero;
-    isPlaying     = false;
-    _soloud.setRelativePlaySpeed(_handle!, playbackSpeed);
-    _startPositionTimer();
+    await _player.setSource(DeviceFileSource(path));
+    await _player.setPlaybackRate(playbackSpeed);
     notifyListeners();
   }
 
   Future<void> unloadAudio() async {
-    _stopPositionTimer();
-    if (_handle != null) {
-      await _soloud.stop(_handle!);
-      _handle = null;
-    }
-    if (_source != null) {
-      await _soloud.disposeSource(_source!);
-      _source = null;
-    }
+    await _player.stop();
+    await _player.release();
     audioPath     = null;
     audioName     = null;
     audioDuration = Duration.zero;
@@ -164,33 +132,26 @@ class LrcSession extends ChangeNotifier {
   }
 
   Future<void> playPause() async {
-    if (_handle == null) return;
-    final paused = _soloud.getPause(_handle!);
-    _soloud.setPause(_handle!, !paused);
-    isPlaying = paused;
-    notifyListeners();
+    if (_player.state == PlayerState.playing) {
+      await _player.pause();
+    } else {
+      await _player.resume();
+    }
   }
 
-  Future<void> seek(Duration position) async {
-    if (_handle == null) return;
-    _soloud.seek(_handle!, position);
-    audioPosition = position;
-    notifyListeners();
-  }
+  Future<void> seek(Duration position) async => _player.seek(position);
 
-  Future<void> skipBack5() => seek(
+  Future<void> skipBack5() => _player.seek(
     Duration(milliseconds: (audioPosition.inMilliseconds - 5000)
     .clamp(0, audioDuration.inMilliseconds)));
 
-  Future<void> skipForward5() => seek(
+  Future<void> skipForward5() => _player.seek(
     Duration(milliseconds: (audioPosition.inMilliseconds + 5000)
     .clamp(0, audioDuration.inMilliseconds)));
 
   Future<void> setSpeed(double speed) async {
     playbackSpeed = speed;
-    if (_handle != null) {
-      _soloud.setRelativePlaySpeed(_handle!, speed);
-    }
+    await _player.setPlaybackRate(speed);
     notifyListeners();
   }
 
@@ -527,9 +488,7 @@ class LrcSession extends ChangeNotifier {
 
     @override
     void dispose() {
-      _stopPositionTimer();
-      if (_handle != null) _soloud.stop(_handle!);
-      if (_source != null) _soloud.disposeSource(_source!);
+      _player.dispose();
       super.dispose();
     }
 }
