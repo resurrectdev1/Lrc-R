@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 
 class LrcLine {
@@ -67,7 +67,6 @@ class MetadataConflict {
 
 class LrcSession extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
-  AudioPlayer get player => _player;
 
   String?  audioPath;
   String?  audioName;
@@ -100,32 +99,31 @@ class LrcSession extends ChangeNotifier {
   set album(String v)  => setAlbum(v);
 
   LrcSession() {
-    _player.positionStream.listen((pos) {
+    _player.onPositionChanged.listen((pos) {
       audioPosition = pos;
       notifyListeners();
     });
-    _player.playerStateStream.listen((state) {
-      isPlaying = state.playing;
+    _player.onPlayerStateChanged.listen((state) {
+      isPlaying = state == PlayerState.playing;
       notifyListeners();
     });
-    _player.durationStream.listen((dur) {
-      if (dur != null) {
-        audioDuration = dur;
-        notifyListeners();
-      }
+    _player.onDurationChanged.listen((dur) {
+      audioDuration = dur;
+      notifyListeners();
     });
   }
 
   Future<void> loadAudio(String path, String name) async {
     audioPath = path;
     audioName = name;
-    await _player.setFilePath(path);
-    await _player.setSpeed(playbackSpeed);
+    await _player.setSource(DeviceFileSource(path));
+    await _player.setPlaybackRate(playbackSpeed);
     notifyListeners();
   }
 
   Future<void> unloadAudio() async {
     await _player.stop();
+    await _player.release();
     audioPath     = null;
     audioName     = null;
     audioDuration = Duration.zero;
@@ -135,10 +133,10 @@ class LrcSession extends ChangeNotifier {
   }
 
   Future<void> playPause() async {
-    if (_player.playing) {
+    if (_player.state == PlayerState.playing) {
       await _player.pause();
     } else {
-      await _player.play();
+      await _player.resume();
     }
   }
 
@@ -154,7 +152,7 @@ class LrcSession extends ChangeNotifier {
 
   Future<void> setSpeed(double speed) async {
     playbackSpeed = speed;
-    await _player.setSpeed(speed);
+    await _player.setPlaybackRate(speed);
     notifyListeners();
   }
 
