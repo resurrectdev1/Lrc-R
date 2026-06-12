@@ -39,7 +39,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
 
 dependency_overrides:
-  path_provider_android: 2.2.4
+  path_provider_android: 2.2.15
 
 flutter_launcher_icons:
   android: "launcher_icon"
