@@ -173,7 +173,7 @@ class LrcSession extends ChangeNotifier {
 
   Future<void> seek(Duration position) async {
     if (_handle == null) return;
-    await _soloud.seek(_handle!, position);
+    _soloud.seek(_handle!, position);
     audioPosition = position;
     notifyListeners();
   }
