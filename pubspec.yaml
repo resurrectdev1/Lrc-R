@@ -27,7 +27,7 @@ dependencies:
   file_picker: ^8.1.2
 
   # Audio playback
-  just_audio: ^0.10.2
+  audioplayers: ^6.1.0
 
   # Sharing / download
   share_plus: ^10.0.0
