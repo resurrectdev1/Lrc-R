@@ -174,9 +174,10 @@ with WidgetsBindingObserver {
   }
 
   Future<void> _pickAudio(LrcSession session) async {
-    final result = await FilePicker.pickFiles(
-      type:        FileType.audio,
-      dialogTitle: 'Choose an audio file',
+    final result = await FilePicker.platform.pickFiles(
+      type:          FileType.audio,
+      allowMultiple: false,
+      dialogTitle:   'Choose an audio file',
     );
     if (result == null || result.files.single.path == null) return;
     await session.unloadAudio();
@@ -190,9 +191,10 @@ with WidgetsBindingObserver {
 
   Future<void> _pickLyrics(LrcSession session) async {
     if (!await _confirmOverwrite(session)) return;
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type:              FileType.custom,
       allowedExtensions: ['txt', 'lrc'],
+      allowMultiple:     false,
       dialogTitle:       'Choose a lyrics file (.txt or .lrc)',
     );
     if (result == null || result.files.single.path == null) return;
@@ -338,7 +340,7 @@ with WidgetsBindingObserver {
       final fileName = '$baseName.lrc';
 
       try {
-        final savePath = await FilePicker.saveFile(
+        final savePath = await FilePicker.platform.saveFile(
           dialogTitle:   'Save LRC file',
           fileName:      fileName,
           type:          FileType.custom,
@@ -361,7 +363,7 @@ with WidgetsBindingObserver {
         final dir  = await getTemporaryDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsString(lrc);
-        await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], subject: fileName));
+        await Share.shareXFiles([XFile(file.path)], subject: fileName);
       }
     }
 
@@ -871,10 +873,11 @@ with WidgetsBindingObserver {
         buildDefaultDragHandles: false,
         itemCount:    session.lines.length,
         footer:       footer,
-        onReorderItem: (oldIndex, newIndex) {
+        onReorder: (oldIndex, newIndex) {
+          final adjustedNew = newIndex > oldIndex ? newIndex - 1 : newIndex;
           if (oldIndex < 0 || oldIndex >= session.lines.length) return;
-          if (newIndex < 0 || newIndex >= session.lines.length) return;
-          session.moveLine(oldIndex, newIndex);
+          if (adjustedNew < 0 || adjustedNew >= session.lines.length) return;
+          session.moveLine(oldIndex, adjustedNew);
           HapticFeedback.selectionClick();
         },
         itemBuilder: (ctx, i) {
