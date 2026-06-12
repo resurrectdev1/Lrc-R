@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LrcLine {
   final String   text;
@@ -397,19 +396,14 @@ class LrcSession extends ChangeNotifier {
       return buf.toString();
     }
 
-    static const _draftFileName = 'lrc_r_draft.json';
-
-    Future<File> _draftFile() async {
-      final dir = await getTemporaryDirectory();
-      return File('${dir.path}/$_draftFileName');
-    }
+    static const _draftKey = 'lrc_r_draft';
 
     Future<bool> hasDraft() async {
       try {
-        final file = await _draftFile();
-        if (!await file.exists()) return false;
-        final raw  = await file.readAsString();
-        final json = jsonDecode(raw) as Map<String, dynamic>;
+        final prefs = await SharedPreferences.getInstance();
+        final raw   = prefs.getString(_draftKey);
+        if (raw == null) return false;
+        final json      = jsonDecode(raw) as Map<String, dynamic>;
         final linesJson = json['lines'] as List?;
         return linesJson != null && linesJson.isNotEmpty;
       } catch (_) {
@@ -420,33 +414,32 @@ class LrcSession extends ChangeNotifier {
     Future<void> saveDraft() async {
       if (lines.isEmpty) return;
       try {
-        final file = await _draftFile();
-        final data = {
-          'title':    _title,
-          'artist':   _artist,
-          'album':    _album,
+        final prefs = await SharedPreferences.getInstance();
+        final data  = {
+          'title':     _title,
+          'artist':    _artist,
+          'album':     _album,
           'audioName': audioName,
-          'tagIndex': tagIndex,
+          'tagIndex':  tagIndex,
           'lines': lines.map((l) => {
             'text':      l.text,
             'timestamp': l.timestamp?.inMilliseconds,
           }).toList(),
         };
-        await file.writeAsString(jsonEncode(data));
-      } catch (_) {
-      }
+        await prefs.setString(_draftKey, jsonEncode(data));
+      } catch (_) {}
     }
 
     Future<bool> loadDraft() async {
       try {
-        final file = await _draftFile();
-        if (!await file.exists()) return false;
-        final raw  = await file.readAsString();
-        final json = jsonDecode(raw) as Map<String, dynamic>;
+        final prefs = await SharedPreferences.getInstance();
+        final raw   = prefs.getString(_draftKey);
+        if (raw == null) return false;
+        final json  = jsonDecode(raw) as Map<String, dynamic>;
 
-        _title  = (json['title']  as String?) ?? '';
-        _artist = (json['artist'] as String?) ?? '';
-        _album  = (json['album']  as String?) ?? '';
+        _title    = (json['title']  as String?) ?? '';
+        _artist   = (json['artist'] as String?) ?? '';
+        _album    = (json['album']  as String?) ?? '';
         audioName = json['audioName'] as String?;
 
         final linesJson = (json['lines'] as List?) ?? [];
@@ -471,8 +464,8 @@ class LrcSession extends ChangeNotifier {
 
     Future<void> discardDraft() async {
       try {
-        final file = await _draftFile();
-        if (await file.exists()) await file.delete();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_draftKey);
       } catch (_) {}
     }
 
