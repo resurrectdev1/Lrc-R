@@ -425,9 +425,9 @@ with WidgetsBindingObserver {
               ),
               const SizedBox(height: 16),
               Text(
-                'Lrc-R is a minimalistic synced-lyrics editor designed to keep your music'
-              'experience complete. Tag any song locally on your device and be worry free as'
-              'Lrc-R is proudly built with love as a free, open-source tool. ',
+                'Lrc-R is a minimalistic synced-lyrics editor designed to keep your music '
+              'experience complete. Tag any song entirely on your device, worry free. '
+              'Built with love as a free, open-source tool. ',
               style: TextStyle(fontSize: 13, color: theme.textSecondary, height: 1.6),
               ),
               const SizedBox(height: 24),
