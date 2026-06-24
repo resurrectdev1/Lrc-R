@@ -101,9 +101,11 @@ class LrcSettings extends ChangeNotifier {
 
   bool _keepScreenOn         = false;
   int  _timestampOffsetMs    = 0;
+  bool _minimalMetadata      = false;
 
   bool get keepScreenOn      => _keepScreenOn;
   int  get timestampOffsetMs => _timestampOffsetMs;
+  bool get minimalMetadata   => _minimalMetadata;
 
   LrcThemeMode get themeMode => _themeMode;
   LrcTheme     get theme     => LrcTheme(mode: _themeMode, dynamicScheme: _dynamicScheme);
@@ -116,6 +118,7 @@ class LrcSettings extends ChangeNotifier {
     }
     _keepScreenOn      = prefs.getBool('lrc_keep_screen_on') ?? false;
     _timestampOffsetMs = prefs.getInt('lrc_timestamp_offset') ?? 0;
+    _minimalMetadata   = prefs.getBool('lrc_minimal_metadata') ?? false;
     _dynamicScheme     = dynamicDark;
     notifyListeners();
   }
@@ -148,6 +151,13 @@ class LrcSettings extends ChangeNotifier {
     _timestampOffsetMs = ms.clamp(-500, 500);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('lrc_timestamp_offset', _timestampOffsetMs);
+    notifyListeners();
+  }
+
+  Future<void> setMinimalMetadata(bool value) async {
+    _minimalMetadata = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lrc_minimal_metadata', value);
     notifyListeners();
   }
 }
