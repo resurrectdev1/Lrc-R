@@ -119,6 +119,18 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
               const SizedBox(height: 20),
               _SectionLabel('EXPORT', theme),
               const SizedBox(height: 10),
+              _SettingsToggle(
+                icon:     Icons.label_off_rounded,
+                label:    'Minimal Metadata',
+                sublabel: 'Export only synced lyrics • no [ti]/[ar]/[al]/[length]/[by] tags',
+                value:    liveSettings.minimalMetadata,
+                theme:    theme,
+                onChanged: (v) async {
+                  await liveSettings.setMinimalMetadata(v);
+                  HapticFeedback.selectionClick();
+                },
+              ),
+              const SizedBox(height: 10),
               Container(
                 padding:    const EdgeInsets.fromLTRB(14, 12, 14, 16),
                 decoration: BoxDecoration(
