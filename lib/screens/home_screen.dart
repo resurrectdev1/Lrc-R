@@ -313,9 +313,12 @@ with WidgetsBindingObserver {
         useSafeArea:        true,
         builder: (ctx) => _PasteLyricsSheet(
           theme:    theme,
-          onSubmit: (raw) async {
+          onSubmit: (raw, {String title = '', String artist = '', String album = ''}) async {
             if (!await _confirmOverwrite(session)) return;
             await _loadRawLyrics(session, raw);
+            if (title.isNotEmpty  && session.title.isEmpty)  session.setTitle(title);
+            if (artist.isNotEmpty && session.artist.isEmpty) session.setArtist(artist);
+            if (album.isNotEmpty  && session.album.isEmpty)  session.setAlbum(album);
             HapticFeedback.lightImpact();
           },
         ),
@@ -323,17 +326,110 @@ with WidgetsBindingObserver {
     }
 
     Future<void> _copyToClipboard(LrcSession session) async {
-      final offsetMs = context.read<LrcSettings>().timestampOffsetMs;
-      await Clipboard.setData(ClipboardData(text: session.buildLrc(offsetMs: offsetMs)));
+      final settings = context.read<LrcSettings>();
+      await Clipboard.setData(ClipboardData(
+        text: session.buildLrc(
+          offsetMs: settings.timestampOffsetMs,
+          minimal:  settings.minimalMetadata,
+        ),
+      ));
       await session.discardDraft();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(_snack('LRC copied to clipboard ✓'));
       }
     }
 
+    Future<void> _shareLrc(LrcSession session) async {
+      final settings = context.read<LrcSettings>();
+      final lrc = session.buildLrc(
+        offsetMs: settings.timestampOffsetMs,
+        minimal:  settings.minimalMetadata,
+      );
+      final baseName = session.audioName != null
+      ? session.audioName!.replaceAll(RegExp(r'\.[^.]+$'), '')
+      : 'lyrics';
+      final fileName = '$baseName.lrc';
+
+      final dir  = await getTemporaryDirectory();
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsString(lrc);
+
+      final result = await Share.shareXFiles([XFile(file.path)], subject: fileName);
+      if (result.status == ShareResultStatus.success && mounted) {
+        await session.discardDraft();
+      }
+    }
+
+    void _showExportOptionsSheet(LrcSession session, LrcTheme theme) {
+      showModalBottomSheet(
+        context:            context,
+        backgroundColor:    Colors.transparent,
+        isScrollControlled: true,
+        useSafeArea:        true,
+        builder: (ctx) {
+          final navBar = MediaQuery.of(ctx).viewPadding.bottom;
+          return Container(
+            decoration: BoxDecoration(
+              color:        theme.surfaceHigh,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 20 + navBar),
+            child: Column(
+              mainAxisSize:       MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color:        theme.textMuted.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Export LRC', style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+                  const SizedBox(height: 4),
+                  Text('Choose how you\'d like to export your synced lyrics',
+                       style: TextStyle(fontSize: 13, color: theme.textSecondary)),
+                       const SizedBox(height: 20),
+                       _ExportOptionTile(
+                         icon:     Icons.copy_rounded,
+                         color:    LrcTheme.accentBlue,
+                         label:    'Copy to Clipboard',
+                         sublabel: 'Paste it anywhere as plain text',
+                         theme:    theme,
+                         onTap: () {
+                           Navigator.pop(ctx);
+                           _copyToClipboard(session);
+                         },
+                       ),
+                       const SizedBox(height: 10),
+                       _ExportOptionTile(
+                         icon:     Icons.ios_share_rounded,
+                         color:    LrcTheme.accentTeal,
+                         label:    'Share',
+                         sublabel: 'Send the .lrc file to another app',
+                         theme:    theme,
+                         onTap: () {
+                           Navigator.pop(ctx);
+                           _shareLrc(session);
+                         },
+                       ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
     Future<void> _saveLrc(LrcSession session) async {
-      final offsetMs = context.read<LrcSettings>().timestampOffsetMs;
-      final lrc = session.buildLrc(offsetMs: offsetMs);
+      final settings = context.read<LrcSettings>();
+      final lrc = session.buildLrc(
+        offsetMs: settings.timestampOffsetMs,
+        minimal:  settings.minimalMetadata,
+      );
       final baseName = session.audioName != null
       ? session.audioName!.replaceAll(RegExp(r'\.[^.]+$'), '')
       : 'lyrics';
@@ -867,11 +963,18 @@ with WidgetsBindingObserver {
         ),
       );
 
+      final minimalMetadata = context.watch<LrcSettings>().minimalMetadata;
+
       return ReorderableListView.builder(
         scrollController: _lyricsScroll,
         padding:          const EdgeInsets.fromLTRB(16, 8, 16, 0),
         buildDefaultDragHandles: false,
         itemCount:    session.lines.length,
+        header:       _MetadataSection(
+          session: session,
+          theme:   theme,
+          minimal: minimalMetadata,
+        ),
         footer:       footer,
         onReorder: (oldIndex, newIndex) {
           final adjustedNew = newIndex > oldIndex ? newIndex - 1 : newIndex;
@@ -980,12 +1083,12 @@ with WidgetsBindingObserver {
                 ),
                 const SizedBox(width: 8),
                 _ActionIconButton(
-                  icon:    Icons.copy_rounded,
+                  icon:    Icons.ios_share_rounded,
                   color:   LrcTheme.accentBlue,
-                  tooltip: 'Copy LRC',
+                  tooltip: 'Copy or Share',
                   theme:   theme,
                   enabled: session.canExport,
-                  onTap:   () => _copyToClipboard(session),
+                  onTap:   () => _showExportOptionsSheet(session, theme),
                 ),
                 const SizedBox(width: 8),
                 _ActionIconButton(
@@ -1037,8 +1140,8 @@ with WidgetsBindingObserver {
 }
 
 class _PasteLyricsSheet extends StatefulWidget {
-  final LrcTheme                theme;
-  final Future<void> Function(String raw) onSubmit;
+  final LrcTheme theme;
+  final Future<void> Function(String raw, {String title, String artist, String album}) onSubmit;
 
   const _PasteLyricsSheet({required this.theme, required this.onSubmit});
 
@@ -1047,18 +1150,67 @@ class _PasteLyricsSheet extends StatefulWidget {
 }
 
 class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
-  late final TextEditingController _ctrl;
+  int _step = 0;
+
+  late final TextEditingController _lyricsCtrl;
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _artistCtrl;
+  late final TextEditingController _albumCtrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController();
+    _lyricsCtrl = TextEditingController();
+    _titleCtrl  = TextEditingController();
+    _artistCtrl = TextEditingController();
+    _albumCtrl  = TextEditingController();
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _lyricsCtrl.dispose();
+    _titleCtrl.dispose();
+    _artistCtrl.dispose();
+    _albumCtrl.dispose();
     super.dispose();
+  }
+
+  void _advance() {
+    if (_lyricsCtrl.text.trim().isEmpty) return;
+    if (_hasEmbeddedMetadata(_lyricsCtrl.text)) {
+      HapticFeedback.selectionClick();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:         const Text('Detected embedded metadata — using it automatically'),
+        backgroundColor: LrcTheme.accentTeal,
+        behavior:        SnackBarBehavior.floating,
+        duration:        const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+      _submit();
+      return;
+    }
+    setState(() => _step = 1);
+  }
+
+  bool _hasEmbeddedMetadata(String raw) {
+    final metaPattern = RegExp(r'^\[(ti|ar|al):(.*)\]$', caseSensitive: false);
+    for (final rawLine in raw.split('\n')) {
+      final line  = rawLine.trim();
+      final match = metaPattern.firstMatch(line);
+      if (match != null && match.group(2)!.trim().isNotEmpty) return true;
+    }
+    return false;
+  }
+
+  Future<void> _submit() async {
+    final raw = _lyricsCtrl.text;
+    Navigator.pop(context);
+    await widget.onSubmit(
+      raw,
+      title:  _titleCtrl.text.trim(),
+      artist: _artistCtrl.text.trim(),
+      album:  _albumCtrl.text.trim(),
+    );
   }
 
   @override
@@ -1070,12 +1222,179 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxH),
-      child: Container(
-        decoration: BoxDecoration(
-          color:        theme.surfaceHigh,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        switchInCurve:  Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, anim) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.08, 0),
+                end:   Offset.zero,
+              ).animate(anim),
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+            child: _step == 0
+            ? _LyricsStep(
+              key:        const ValueKey('step_lyrics'),
+              theme:      theme,
+              ctrl:       _lyricsCtrl,
+              navBar:     navBar,
+              kb:         kb,
+              onAdvance:  _advance,
+            )
+            : _MetaStep(
+              key:        const ValueKey('step_meta'),
+              theme:      theme,
+              titleCtrl:  _titleCtrl,
+              artistCtrl: _artistCtrl,
+              albumCtrl:  _albumCtrl,
+              navBar:     navBar,
+              kb:         kb,
+              onBack:     () => setState(() => _step = 0),
+              onSubmit:   _submit,
+            ),
+      ),
+    );
+  }
+}
+
+class _LyricsStep extends StatelessWidget {
+  final LrcTheme               theme;
+  final TextEditingController  ctrl;
+  final double                 navBar;
+  final double                 kb;
+  final VoidCallback           onAdvance;
+
+  const _LyricsStep({
+    super.key,
+    required this.theme,
+    required this.ctrl,
+    required this.navBar,
+    required this.kb,
+    required this.onAdvance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color:        theme.surfaceHigh,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: Column(
+        mainAxisSize:       MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color:        theme.textMuted.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Paste Lyrics', style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700,
+                      color: theme.textPrimary)),
+                      const SizedBox(height: 2),
+                      Text('One lyric line per line. Blank lines are ignored.',
+                           style: TextStyle(fontSize: 13, color: theme.textSecondary)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color:        theme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border:       Border.all(color: theme.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text('1 of 2', style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w600, color: theme.primary)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: SingleChildScrollView(
+              child: TextField(
+                controller: ctrl,
+                maxLines:   null,
+                minLines:   6,
+                autofocus:  true,
+                style: TextStyle(color: theme.textPrimary, fontSize: 14, height: 1.6),
+                decoration: const InputDecoration(hintText: 'Paste your lyrics here…'),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(0, 12, 0, 16 + (kb > 0 ? kb : navBar)),
+            child: SizedBox(
+              height: 50,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: onAdvance,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text('Next', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward_rounded, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaStep extends StatelessWidget {
+  final LrcTheme               theme;
+  final TextEditingController  titleCtrl;
+  final TextEditingController  artistCtrl;
+  final TextEditingController  albumCtrl;
+  final double                 navBar;
+  final double                 kb;
+  final VoidCallback           onBack;
+  final VoidCallback           onSubmit;
+
+  const _MetaStep({
+    super.key,
+    required this.theme,
+    required this.titleCtrl,
+    required this.artistCtrl,
+    required this.albumCtrl,
+    required this.navBar,
+    required this.kb,
+    required this.onBack,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final minimalOn = context.watch<LrcSettings>().minimalMetadata;
+    return Container(
+      decoration: BoxDecoration(
+        color:        theme.surfaceHigh,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize:       MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1090,52 +1409,365 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Paste Lyrics', style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
-              const SizedBox(height: 4),
-              Text('One lyric line per line. Blank lines are ignored.',
-                   style: TextStyle(fontSize: 13, color: theme.textSecondary)),
-                   const SizedBox(height: 12),
-                   Flexible(
-                     child: SingleChildScrollView(
-                       child: TextField(
-                         controller: _ctrl,
-                         maxLines:   null,
-                         minLines:   6,
-                         autofocus:  true,
-                         style: TextStyle(color: theme.textPrimary, fontSize: 14, height: 1.6),
-                         decoration: const InputDecoration(
-                           hintText: 'Paste your lyrics here…',
-                         ),
-                       ),
-                     ),
-                   ),
-                   Padding(
-                     padding: EdgeInsets.fromLTRB(0, 12, 0, 16 + (kb > 0 ? kb : navBar)),
-                     child: SizedBox(
-                       height: 50,
-                       child: FilledButton(
-                         style: FilledButton.styleFrom(
-                           backgroundColor: theme.primary,
-                           shape: RoundedRectangleBorder(
-                             borderRadius: BorderRadius.circular(14)),
-                         ),
-                         onPressed: () async {
-                           if (_ctrl.text.trim().isEmpty) return;
-                           final raw = _ctrl.text;
-                           Navigator.pop(context);
-                           await widget.onSubmit(raw);
-                         },
-                         child: const Text('Use These Lyrics',
-                                           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                       ),
-                     ),
-                   ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Add Metadata', style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700,
+                        color: theme.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text(
+                          minimalOn
+                          ? 'Optional — Minimal Metadata is ON, so these won\'t be exported'
+                        : 'Optional — embedded as [ti:] [ar:] [al:] tags',
+                        style: TextStyle(fontSize: 13, color: theme.textSecondary),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color:        theme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border:       Border.all(color: theme.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Text('2 of 2', style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w600, color: theme.primary)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            _MetaField(
+              controller: titleCtrl,
+              label: 'Song Title',
+              tag:   '[ti:]',
+              icon:  Icons.music_note_rounded,
+              theme: theme,
+            ),
+            const SizedBox(height: 10),
+            _MetaField(
+              controller: artistCtrl,
+              label: 'Artist Name',
+              tag:   '[ar:]',
+              icon:  Icons.person_rounded,
+              theme: theme,
+            ),
+            const SizedBox(height: 10),
+            _MetaField(
+              controller: albumCtrl,
+              label: 'Album Name',
+              tag:   '[al:]',
+              icon:  Icons.album_rounded,
+              theme: theme,
+            ),
+
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                SizedBox(
+                  width: 50, height: 50,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      side:  BorderSide(color: theme.textMuted.withValues(alpha: 0.35)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: onBack,
+                    child: Icon(Icons.arrow_back_rounded,
+                                color: theme.textSecondary, size: 18),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.textSecondary,
+                          side:  BorderSide(color: theme.textMuted.withValues(alpha: 0.35)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: onSubmit,
+                      child: const Text('Skip',
+                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 50,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: onSubmit,
+                      child: const Text('Use These Lyrics',
+                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16 + (kb > 0 ? kb : navBar)),
           ],
         ),
       ),
     );
   }
+}
+
+class _MetaField extends StatelessWidget {
+  final TextEditingController controller;
+  final String   label;
+  final String   tag;
+  final IconData icon;
+  final LrcTheme theme;
+  final FocusNode?            focusNode;
+  final ValueChanged<String>? onChanged;
+
+  const _MetaField({
+    required this.controller,
+    required this.label,
+    required this.tag,
+    required this.icon,
+    required this.theme,
+    this.focusNode,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    focusNode:  focusNode,
+    onChanged:  onChanged,
+    style:      TextStyle(color: theme.textPrimary, fontSize: 14),
+    decoration: InputDecoration(
+      labelText:   label,
+      prefixIcon:  Icon(icon, size: 18, color: theme.textMuted),
+      suffixText:  tag,
+      suffixStyle: TextStyle(
+        fontSize:      12,
+        fontWeight:    FontWeight.w600,
+        color:         theme.textMuted,
+        fontFamily:    'monospace',
+        letterSpacing: -0.3,
+      ),
+    ),
+  );
+}
+
+class _MetadataSection extends StatefulWidget {
+  final LrcSession session;
+  final LrcTheme   theme;
+  final bool       minimal;
+
+  const _MetadataSection({
+    required this.session,
+    required this.theme,
+    required this.minimal,
+  });
+
+  @override
+  State<_MetadataSection> createState() => _MetadataSectionState();
+}
+
+class _MetadataSectionState extends State<_MetadataSection> {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _artistCtrl;
+  late final TextEditingController _albumCtrl;
+  final FocusNode _titleFocus  = FocusNode();
+  final FocusNode _artistFocus = FocusNode();
+  final FocusNode _albumFocus  = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl  = TextEditingController(text: widget.session.title);
+    _artistCtrl = TextEditingController(text: widget.session.artist);
+    _albumCtrl  = TextEditingController(text: widget.session.album);
+  }
+
+  @override
+  void didUpdateWidget(_MetadataSection old) {
+    super.didUpdateWidget(old);
+    if (!_titleFocus.hasFocus && widget.session.title != _titleCtrl.text) {
+      _titleCtrl.text = widget.session.title;
+    }
+    if (!_artistFocus.hasFocus && widget.session.artist != _artistCtrl.text) {
+      _artistCtrl.text = widget.session.artist;
+    }
+    if (!_albumFocus.hasFocus && widget.session.album != _albumCtrl.text) {
+      _albumCtrl.text = widget.session.album;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _artistCtrl.dispose();
+    _albumCtrl.dispose();
+    _titleFocus.dispose();
+    _artistFocus.dispose();
+    _albumFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme   = widget.theme;
+    final session = widget.session;
+
+    return Container(
+      margin:     const EdgeInsets.fromLTRB(0, 0, 0, 14),
+      padding:    const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color:        theme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border:       Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 26, height: 26,
+                decoration: BoxDecoration(
+                  color:        theme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.album_rounded, color: theme.primary, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Text('Song Metadata', style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.minimal
+            ? 'Minimal Metadata is ON — these tags will be left out on export'
+          : 'Embedded as [ti:] [ar:] [al:] [length:] tags on export',
+          style: TextStyle(fontSize: 11, color: theme.textMuted),
+          ),
+          if (!widget.minimal && session.audioDuration > Duration.zero) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.schedule_rounded, size: 13, color: theme.textMuted),
+                const SizedBox(width: 5),
+                Text(
+                  'Length: ${session.formatDuration(session.audioDuration)} '
+                '(detected from audio, added automatically)',
+                style: TextStyle(fontSize: 11, color: theme.textMuted),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          _MetaField(
+            controller: _titleCtrl,
+            focusNode:  _titleFocus,
+            label:      'Title',
+            tag:        '[ti:]',
+            icon:       Icons.music_note_rounded,
+            theme:      theme,
+            onChanged:  session.setTitle,
+          ),
+          const SizedBox(height: 8),
+          _MetaField(
+            controller: _artistCtrl,
+            focusNode:  _artistFocus,
+            label:      'Artist',
+            tag:        '[ar:]',
+            icon:       Icons.person_rounded,
+            theme:      theme,
+            onChanged:  session.setArtist,
+          ),
+          const SizedBox(height: 8),
+          _MetaField(
+            controller: _albumCtrl,
+            focusNode:  _albumFocus,
+            label:      'Album',
+            tag:        '[al:]',
+            icon:       Icons.album_rounded,
+            theme:      theme,
+            onChanged:  session.setAlbum,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportOptionTile extends StatelessWidget {
+  final IconData     icon;
+  final Color        color;
+  final String       label;
+  final String       sublabel;
+  final LrcTheme     theme;
+  final VoidCallback onTap;
+
+  const _ExportOptionTile({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.sublabel,
+    required this.theme,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color:        theme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border:       Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color:        color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600, color: theme.textPrimary)),
+                    Text(sublabel, style: TextStyle(fontSize: 11, color: theme.textSecondary)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: theme.textMuted),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _ActionIconButton extends StatelessWidget {
