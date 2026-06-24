@@ -1421,8 +1421,8 @@ class _MetaStep extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           minimalOn
-                          ? 'Optional — Minimal Metadata is ON, so these won\'t be exported'
-                        : 'Optional — embedded as [ti:] [ar:] [al:] tags',
+                          ? 'Optional • Minimal Metadata is ON, so these won\'t be exported'
+                        : 'Optional • embedded as [ti:] [ar:] [al:] tags',
                         style: TextStyle(fontSize: 13, color: theme.textSecondary),
                         ),
                     ],
