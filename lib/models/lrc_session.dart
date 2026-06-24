@@ -110,11 +110,18 @@ class LrcSession extends ChangeNotifier {
       audioDuration = dur;
       notifyListeners();
     });
+    _player.onPlayerComplete.listen((_) async {
+      await _player.seek(Duration.zero);
+      isPlaying     = false;
+      audioPosition = Duration.zero;
+      notifyListeners();
+    });
   }
 
   Future<void> loadAudio(String path, String name) async {
     audioPath = path;
     audioName = name;
+    await _player.setReleaseMode(ReleaseMode.stop);
     await _player.setSource(DeviceFileSource(path));
     await _player.setPlaybackRate(playbackSpeed);
     notifyListeners();
@@ -220,7 +227,7 @@ class LrcSession extends ChangeNotifier {
       required void Function(String) outAlbum,
     }) {
     final tsPattern   = RegExp(r'^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$');
-    final metaPattern = RegExp(r'^\[(ti|ar|al|by|offset):(.*)\]$', caseSensitive: false);
+    final metaPattern = RegExp(r'^\[(ti|ar|al|by|offset|length):(.*)\]$', caseSensitive: false);
 
     final result        = <LrcLine>[];
     bool foundTimestamp = false;
@@ -370,13 +377,18 @@ class LrcSession extends ChangeNotifier {
       notifyListeners();
     }
 
-    String buildLrc({int offsetMs = 0}) {
+    String buildLrc({int offsetMs = 0, bool minimal = false}) {
       final buf = StringBuffer();
-      if (_title.isNotEmpty)  buf.writeln('[ti:$_title]');
-      if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
-      if (_album.isNotEmpty)  buf.writeln('[al:$_album]');
-      buf.writeln('[by:Lrc-R]');
-      buf.writeln();
+      if (!minimal) {
+        if (_title.isNotEmpty)  buf.writeln('[ti:$_title]');
+        if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
+        if (_album.isNotEmpty)  buf.writeln('[al:$_album]');
+        if (audioDuration > Duration.zero) {
+          buf.writeln('[length:${formatDuration(audioDuration)}]');
+        }
+        buf.writeln('[by:Lrc-R]');
+        buf.writeln();
+      }
       final sorted = [...lines]..sort((a, b) {
         if (a.timestamp == null && b.timestamp == null) return 0;
         if (a.timestamp == null) return 1;
