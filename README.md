@@ -56,7 +56,7 @@ alt="Get it on F-Droid" align="center" height="80" /></a>
 
 ## Development
 
-**Grove** is built using Flutter, pinned to a specific version (see `flutter` in `pubspec.yaml`) to keep builds consistent. [Install Flutter](https://docs.flutter.dev/get-started/install) at that version, or use [FVM](https://fvm.app/) to manage it (`fvm install <version> && fvm use <version>`). Then clone the repository, enter the project directory, and run `flutter pub get` (or `fvm flutter pub get`), followed by connecting your phone with USB debugging enabled, granting the necessary permissions, and finally running `flutter run --release` (or `fvm flutter run --release`).
+**Lrc-R** is built using Flutter, pinned to a specific version (see `flutter` in `pubspec.yaml`) to keep builds consistent. [Install Flutter](https://docs.flutter.dev/get-started/install) at that version, or use [FVM](https://fvm.app/) to manage it (`fvm install <version> && fvm use <version>`). Then clone the repository, enter the project directory, and run `flutter pub get` (or `fvm flutter pub get`), followed by connecting your phone with USB debugging enabled, granting the necessary permissions, and finally running `flutter run --release` (or `fvm flutter run --release`).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more on the project structure, code style, and setup details.
 
