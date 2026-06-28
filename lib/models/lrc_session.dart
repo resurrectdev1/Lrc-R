@@ -30,9 +30,10 @@ class LrcLine {
 sealed class _UndoAction {}
 
 class _TagAction extends _UndoAction {
-  final int      index;
-  final Duration timestamp;
-  _TagAction(this.index, this.timestamp);
+  final int       index;
+  final Duration  timestamp;
+  final Duration? previousTimestamp;
+  _TagAction(this.index, this.timestamp, this.previousTimestamp);
 }
 
 class _EditAction extends _UndoAction {
@@ -273,7 +274,7 @@ class LrcSession extends ChangeNotifier {
 
     void tagCurrentLine() {
       if (tagIndex >= lines.length) return;
-      _push(_TagAction(tagIndex, audioPosition));
+      _push(_TagAction(tagIndex, audioPosition, lines[tagIndex].timestamp));
       lines[tagIndex] = lines[tagIndex].copyWith(timestamp: audioPosition);
       tagIndex = (tagIndex + 1).clamp(0, lines.length);
       notifyListeners();
@@ -284,7 +285,9 @@ class LrcSession extends ChangeNotifier {
       final action = _undoStack.removeLast();
       switch (action) {
         case _TagAction a:
-          lines[a.index] = lines[a.index].copyWith(clearTimestamp: true);
+          lines[a.index] = a.previousTimestamp != null
+          ? lines[a.index].copyWith(timestamp: a.previousTimestamp)
+          : lines[a.index].copyWith(clearTimestamp: true);
           tagIndex = a.index;
         case _EditAction a:
           lines[a.index] = lines[a.index].copyWith(text: a.previousText);
