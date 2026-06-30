@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -65,7 +66,7 @@ class MetadataConflict {
   });
 }
 
-class LrcSession extends ChangeNotifier {
+class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   final AudioPlayer _player = AudioPlayer();
 
   String?  audioPath;
@@ -85,20 +86,25 @@ class LrcSession extends ChangeNotifier {
   String _title  = '';
   String _artist = '';
   String _album  = '';
+  String _by     = '';
 
   String get title  => _title;
   String get artist => _artist;
   String get album  => _album;
+  String get by     => _by;
 
   void setTitle(String v)  { _title  = v; notifyListeners(); }
   void setArtist(String v) { _artist = v; notifyListeners(); }
   void setAlbum(String v)  { _album  = v; notifyListeners(); }
+  void setBy(String v)     { _by     = v; notifyListeners(); }
 
   set title(String v)  => setTitle(v);
   set artist(String v) => setArtist(v);
   set album(String v)  => setAlbum(v);
+  set by(String v)     => setBy(v);
 
   LrcSession() {
+    WidgetsBinding.instance.addObserver(this);
     _player.onPositionChanged.listen((pos) {
       audioPosition = pos;
       notifyListeners();
@@ -117,6 +123,14 @@ class LrcSession extends ChangeNotifier {
       audioPosition = Duration.zero;
       notifyListeners();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+      state == AppLifecycleState.detached) {
+      if (isPlaying) _player.pause();
+      }
   }
 
   Future<void> loadAudio(String path, String name) async {
@@ -168,11 +182,13 @@ class LrcSession extends ChangeNotifier {
     String parsedTitle  = '';
     String parsedArtist = '';
     String parsedAlbum  = '';
+    String parsedBy     = '';
     final parsed = _parseLrc(
       raw,
       outTitle:  (v) => parsedTitle  = v,
       outArtist: (v) => parsedArtist = v,
       outAlbum:  (v) => parsedAlbum  = v,
+      outBy:     (v) => parsedBy     = v,
     );
 
     if (parsed != null) {
@@ -207,6 +223,7 @@ class LrcSession extends ChangeNotifier {
       if (_artist.isEmpty && parsedArtist.isNotEmpty) _artist = parsedArtist;
       if (_album.isEmpty  && parsedAlbum.isNotEmpty)  _album  = parsedAlbum;
     }
+    if (_by.isEmpty && parsedBy.isNotEmpty) _by = parsedBy;
 
     notifyListeners();
     return null;
@@ -226,6 +243,7 @@ class LrcSession extends ChangeNotifier {
       required void Function(String) outTitle,
       required void Function(String) outArtist,
       required void Function(String) outAlbum,
+      required void Function(String) outBy,
     }) {
     final tsPattern   = RegExp(r'^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$');
     final metaPattern = RegExp(r'^\[(ti|ar|al|by|offset|length):(.*)\]$', caseSensitive: false);
@@ -244,6 +262,7 @@ class LrcSession extends ChangeNotifier {
         if (key == 'ti') outTitle(val);
         if (key == 'ar') outArtist(val);
         if (key == 'al') outAlbum(val);
+        if (key == 'by') outBy(val);
         continue;
       }
 
@@ -383,13 +402,13 @@ class LrcSession extends ChangeNotifier {
     String buildLrc({int offsetMs = 0, bool minimal = false}) {
       final buf = StringBuffer();
       if (!minimal) {
-        if (_title.isNotEmpty)  buf.writeln('[ti:$_title]');
         if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
         if (_album.isNotEmpty)  buf.writeln('[al:$_album]');
+        if (_title.isNotEmpty)  buf.writeln('[ti:$_title]');
+        if (_by.isNotEmpty) buf.writeln('[by:$_by]');
         if (audioDuration > Duration.zero) {
           buf.writeln('[length:${formatDuration(audioDuration)}]');
         }
-        buf.writeln('[by:Lrc-R]');
         buf.writeln();
       }
       final sorted = [...lines]..sort((a, b) {
@@ -434,6 +453,7 @@ class LrcSession extends ChangeNotifier {
           'title':     _title,
           'artist':    _artist,
           'album':     _album,
+          'by':        _by,
           'audioName': audioName,
           'tagIndex':  tagIndex,
           'lines': lines.map((l) => {
@@ -455,6 +475,7 @@ class LrcSession extends ChangeNotifier {
         _title    = (json['title']  as String?) ?? '';
         _artist   = (json['artist'] as String?) ?? '';
         _album    = (json['album']  as String?) ?? '';
+        _by       = (json['by']     as String?) ?? '';
         audioName = json['audioName'] as String?;
 
         final linesJson = (json['lines'] as List?) ?? [];
@@ -503,6 +524,7 @@ class LrcSession extends ChangeNotifier {
 
     @override
     void dispose() {
+      WidgetsBinding.instance.removeObserver(this);
       _player.dispose();
       super.dispose();
     }
