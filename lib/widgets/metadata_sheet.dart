@@ -12,24 +12,27 @@ class MetadataSheet extends StatefulWidget {
 }
 
 class _MetadataSheetState extends State<MetadataSheet> {
-  late TextEditingController _titleCtrl;
   late TextEditingController _artistCtrl;
   late TextEditingController _albumCtrl;
+  late TextEditingController _titleCtrl;
+  late TextEditingController _byCtrl;
 
   @override
   void initState() {
     super.initState();
     final session = context.read<LrcSession>();
-    _titleCtrl  = TextEditingController(text: session.title);
     _artistCtrl = TextEditingController(text: session.artist);
     _albumCtrl  = TextEditingController(text: session.album);
+    _titleCtrl  = TextEditingController(text: session.title);
+    _byCtrl     = TextEditingController(text: session.by);
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
     _artistCtrl.dispose();
     _albumCtrl.dispose();
+    _titleCtrl.dispose();
+    _byCtrl.dispose();
     super.dispose();
   }
 
@@ -61,14 +64,16 @@ class _MetadataSheetState extends State<MetadataSheet> {
           const SizedBox(height: 20),
           Text('LRC Metadata', style: TextStyle(
             fontSize: 18, fontWeight: FontWeight.w800, color: theme.textPrimary)),
-            Text('Embedded in the [ti:] [ar:] [al:] tags',
+            Text('Embedded in the [ar:] [al:] [ti:] [by:] tags',
                  style: TextStyle(fontSize: 12, color: theme.textSecondary)),
                  const SizedBox(height: 20),
-                 _field(_titleCtrl,  'Title',  Icons.music_note_rounded, theme),
-                 const SizedBox(height: 12),
                  _field(_artistCtrl, 'Artist', Icons.person_rounded,     theme),
                  const SizedBox(height: 12),
                  _field(_albumCtrl,  'Album',  Icons.album_rounded,      theme),
+                 const SizedBox(height: 12),
+                 _field(_titleCtrl,  'Title',  Icons.music_note_rounded, theme),
+                 const SizedBox(height: 12),
+                 _field(_byCtrl,     'By',     Icons.edit_note_rounded,  theme),
                  const SizedBox(height: 20),
                  SizedBox(
                    width: double.infinity, height: 50,
@@ -78,9 +83,10 @@ class _MetadataSheetState extends State<MetadataSheet> {
                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                      ),
                      onPressed: () {
-                       session.setTitle(_titleCtrl.text.trim());
                        session.setArtist(_artistCtrl.text.trim());
                        session.setAlbum(_albumCtrl.text.trim());
+                       session.setTitle(_titleCtrl.text.trim());
+                       session.setBy(_byCtrl.text.trim());
                        Navigator.pop(context);
                      },
                      child: const Text('Save',
