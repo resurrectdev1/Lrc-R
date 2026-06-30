@@ -252,14 +252,14 @@ with WidgetsBindingObserver {
       String row(String label, String val) =>
       val.isNotEmpty ? '$label: $val' : '';
       final fileInfo = [
-        row('Title',  conflict.fileTitle),
         row('Artist', conflict.fileArtist),
         row('Album',  conflict.fileAlbum),
+        row('Title',  conflict.fileTitle),
       ].where((s) => s.isNotEmpty).join('\n');
       final sessionInfo = [
-        row('Title',  session.title),
         row('Artist', session.artist),
         row('Album',  session.album),
+        row('Title',  session.title),
       ].where((s) => s.isNotEmpty).join('\n');
 
       final replace = await showDialog<bool>(
@@ -313,12 +313,13 @@ with WidgetsBindingObserver {
         useSafeArea:        true,
         builder: (ctx) => _PasteLyricsSheet(
           theme:    theme,
-          onSubmit: (raw, {String title = '', String artist = '', String album = ''}) async {
+          onSubmit: (raw, {String title = '', String artist = '', String album = '', String by = ''}) async {
             if (!await _confirmOverwrite(session)) return;
             await _loadRawLyrics(session, raw);
             if (title.isNotEmpty  && session.title.isEmpty)  session.setTitle(title);
             if (artist.isNotEmpty && session.artist.isEmpty) session.setArtist(artist);
             if (album.isNotEmpty  && session.album.isEmpty)  session.setAlbum(album);
+            if (by.isNotEmpty     && session.by.isEmpty)     session.setBy(by);
             HapticFeedback.lightImpact();
           },
         ),
@@ -1141,7 +1142,7 @@ with WidgetsBindingObserver {
 
 class _PasteLyricsSheet extends StatefulWidget {
   final LrcTheme theme;
-  final Future<void> Function(String raw, {String title, String artist, String album}) onSubmit;
+  final Future<void> Function(String raw, {String title, String artist, String album, String by}) onSubmit;
 
   const _PasteLyricsSheet({required this.theme, required this.onSubmit});
 
@@ -1153,25 +1154,28 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
   int _step = 0;
 
   late final TextEditingController _lyricsCtrl;
-  late final TextEditingController _titleCtrl;
   late final TextEditingController _artistCtrl;
   late final TextEditingController _albumCtrl;
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _byCtrl;
 
   @override
   void initState() {
     super.initState();
     _lyricsCtrl = TextEditingController();
-    _titleCtrl  = TextEditingController();
     _artistCtrl = TextEditingController();
     _albumCtrl  = TextEditingController();
+    _titleCtrl  = TextEditingController();
+    _byCtrl     = TextEditingController();
   }
 
   @override
   void dispose() {
     _lyricsCtrl.dispose();
-    _titleCtrl.dispose();
     _artistCtrl.dispose();
     _albumCtrl.dispose();
+    _titleCtrl.dispose();
+    _byCtrl.dispose();
     super.dispose();
   }
 
@@ -1193,7 +1197,7 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
   }
 
   bool _hasEmbeddedMetadata(String raw) {
-    final metaPattern = RegExp(r'^\[(ti|ar|al):(.*)\]$', caseSensitive: false);
+    final metaPattern = RegExp(r'^\[(ti|ar|al|by):(.*)\]$', caseSensitive: false);
     for (final rawLine in raw.split('\n')) {
       final line  = rawLine.trim();
       final match = metaPattern.firstMatch(line);
@@ -1210,6 +1214,7 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
       title:  _titleCtrl.text.trim(),
       artist: _artistCtrl.text.trim(),
       album:  _albumCtrl.text.trim(),
+      by:     _byCtrl.text.trim(),
     );
   }
 
@@ -1245,9 +1250,10 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
             : _MetaStep(
               key:        const ValueKey('step_meta'),
               theme:      theme,
-              titleCtrl:  _titleCtrl,
               artistCtrl: _artistCtrl,
               albumCtrl:  _albumCtrl,
+              titleCtrl:  _titleCtrl,
+              byCtrl:     _byCtrl,
               navBar:     navBar,
               kb:         kb,
               onBack:     () => setState(() => _step = 0),
@@ -1365,9 +1371,10 @@ class _LyricsStep extends StatelessWidget {
 
 class _MetaStep extends StatelessWidget {
   final LrcTheme               theme;
-  final TextEditingController  titleCtrl;
   final TextEditingController  artistCtrl;
   final TextEditingController  albumCtrl;
+  final TextEditingController  titleCtrl;
+  final TextEditingController  byCtrl;
   final double                 navBar;
   final double                 kb;
   final VoidCallback           onBack;
@@ -1376,9 +1383,10 @@ class _MetaStep extends StatelessWidget {
   const _MetaStep({
     super.key,
     required this.theme,
-    required this.titleCtrl,
     required this.artistCtrl,
     required this.albumCtrl,
+    required this.titleCtrl,
+    required this.byCtrl,
     required this.navBar,
     required this.kb,
     required this.onBack,
@@ -1422,7 +1430,7 @@ class _MetaStep extends StatelessWidget {
                         Text(
                           minimalOn
                           ? 'Optional • Minimal Metadata is ON, so these won\'t be exported'
-                        : 'Optional • embedded as [ti:] [ar:] [al:] tags',
+                        : 'Optional • embedded as [ar:] [al:] [ti:] [by:] tags',
                         style: TextStyle(fontSize: 13, color: theme.textSecondary),
                         ),
                     ],
@@ -1443,14 +1451,6 @@ class _MetaStep extends StatelessWidget {
             const SizedBox(height: 16),
 
             _MetaField(
-              controller: titleCtrl,
-              label: 'Song Title',
-              tag:   '[ti:]',
-              icon:  Icons.music_note_rounded,
-              theme: theme,
-            ),
-            const SizedBox(height: 10),
-            _MetaField(
               controller: artistCtrl,
               label: 'Artist Name',
               tag:   '[ar:]',
@@ -1463,6 +1463,22 @@ class _MetaStep extends StatelessWidget {
               label: 'Album Name',
               tag:   '[al:]',
               icon:  Icons.album_rounded,
+              theme: theme,
+            ),
+            const SizedBox(height: 10),
+            _MetaField(
+              controller: titleCtrl,
+              label: 'Song Title',
+              tag:   '[ti:]',
+              icon:  Icons.music_note_rounded,
+              theme: theme,
+            ),
+            const SizedBox(height: 10),
+            _MetaField(
+              controller: byCtrl,
+              label: 'By',
+              tag:   '[by:]',
+              icon:  Icons.edit_note_rounded,
               theme: theme,
             ),
 
@@ -1583,43 +1599,51 @@ class _MetadataSection extends StatefulWidget {
 }
 
 class _MetadataSectionState extends State<_MetadataSection> {
-  late final TextEditingController _titleCtrl;
   late final TextEditingController _artistCtrl;
   late final TextEditingController _albumCtrl;
-  final FocusNode _titleFocus  = FocusNode();
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _byCtrl;
   final FocusNode _artistFocus = FocusNode();
   final FocusNode _albumFocus  = FocusNode();
+  final FocusNode _titleFocus  = FocusNode();
+  final FocusNode _byFocus     = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _titleCtrl  = TextEditingController(text: widget.session.title);
     _artistCtrl = TextEditingController(text: widget.session.artist);
     _albumCtrl  = TextEditingController(text: widget.session.album);
+    _titleCtrl  = TextEditingController(text: widget.session.title);
+    _byCtrl     = TextEditingController(text: widget.session.by);
   }
 
   @override
   void didUpdateWidget(_MetadataSection old) {
     super.didUpdateWidget(old);
-    if (!_titleFocus.hasFocus && widget.session.title != _titleCtrl.text) {
-      _titleCtrl.text = widget.session.title;
-    }
     if (!_artistFocus.hasFocus && widget.session.artist != _artistCtrl.text) {
       _artistCtrl.text = widget.session.artist;
     }
     if (!_albumFocus.hasFocus && widget.session.album != _albumCtrl.text) {
       _albumCtrl.text = widget.session.album;
     }
+    if (!_titleFocus.hasFocus && widget.session.title != _titleCtrl.text) {
+      _titleCtrl.text = widget.session.title;
+    }
+    if (!_byFocus.hasFocus && widget.session.by != _byCtrl.text) {
+      _byCtrl.text = widget.session.by;
+    }
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
     _artistCtrl.dispose();
     _albumCtrl.dispose();
-    _titleFocus.dispose();
+    _titleCtrl.dispose();
+    _byCtrl.dispose();
     _artistFocus.dispose();
     _albumFocus.dispose();
+    _titleFocus.dispose();
+    _byFocus.dispose();
     super.dispose();
   }
 
@@ -1658,7 +1682,7 @@ class _MetadataSectionState extends State<_MetadataSection> {
           Text(
             widget.minimal
             ? 'Minimal Metadata is ON — these tags will be left out on export'
-          : 'Embedded as [ti:] [ar:] [al:] [length:] tags on export',
+          : 'Embedded as [ar:] [al:] [ti:] [by:] [length:] tags on export',
           style: TextStyle(fontSize: 11, color: theme.textMuted),
           ),
           if (!widget.minimal && session.audioDuration > Duration.zero) ...[
@@ -1677,16 +1701,6 @@ class _MetadataSectionState extends State<_MetadataSection> {
           ],
           const SizedBox(height: 12),
           _MetaField(
-            controller: _titleCtrl,
-            focusNode:  _titleFocus,
-            label:      'Title',
-            tag:        '[ti:]',
-            icon:       Icons.music_note_rounded,
-            theme:      theme,
-            onChanged:  session.setTitle,
-          ),
-          const SizedBox(height: 8),
-          _MetaField(
             controller: _artistCtrl,
             focusNode:  _artistFocus,
             label:      'Artist',
@@ -1704,6 +1718,26 @@ class _MetadataSectionState extends State<_MetadataSection> {
             icon:       Icons.album_rounded,
             theme:      theme,
             onChanged:  session.setAlbum,
+          ),
+          const SizedBox(height: 8),
+          _MetaField(
+            controller: _titleCtrl,
+            focusNode:  _titleFocus,
+            label:      'Title',
+            tag:        '[ti:]',
+            icon:       Icons.music_note_rounded,
+            theme:      theme,
+            onChanged:  session.setTitle,
+          ),
+          const SizedBox(height: 8),
+          _MetaField(
+            controller: _byCtrl,
+            focusNode:  _byFocus,
+            label:      'By',
+            tag:        '[by:]',
+            icon:       Icons.edit_note_rounded,
+            theme:      theme,
+            onChanged:  session.setBy,
           ),
         ],
       ),
