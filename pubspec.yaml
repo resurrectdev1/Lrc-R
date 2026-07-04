@@ -21,7 +21,7 @@ dependencies:
   dynamic_color: ^1.7.0
   wakelock_plus: ^1.2.8
   confetti: ^0.8.0
-  package_info_plus: ^8.0.0
+  package_info_plus: ^9.0.1
 
   # File picking (audio + lyrics)
   file_picker: ^8.1.2
