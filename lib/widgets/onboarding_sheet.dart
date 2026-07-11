@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/lrc_settings.dart';
 import '../theme/lrc_theme.dart';
 
 const _kOnboardingDone = 'lrc_onboarding_done';
