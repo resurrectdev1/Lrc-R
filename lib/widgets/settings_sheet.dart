@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../providers/lrc_settings.dart';
 import '../theme/lrc_theme.dart';
 
 class LrcSettingsSheet extends StatefulWidget {
