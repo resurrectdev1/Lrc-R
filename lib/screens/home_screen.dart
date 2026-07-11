@@ -11,6 +11,7 @@ import 'package:confetti/confetti.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/lrc_session.dart';
+import '../providers/lrc_settings.dart';
 import '../theme/lrc_theme.dart';
 import '../widgets/audio_player_bar.dart';
 import '../widgets/lyrics_line_tile.dart';
