@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 
 import 'models/lrc_session.dart';
+import 'providers/lrc_settings.dart';
 import 'theme/lrc_theme.dart';
 import 'screens/home_screen.dart';
 
