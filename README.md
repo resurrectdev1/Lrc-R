@@ -13,10 +13,6 @@ Whether you're syncing your favourite songs, preserving lyrics for offline playe
 <img width="200" src="https://github.com/resurrectdev1/Lrc-R/blob/main/assets/screenshot_4.png">
 </p>
 
-### How does it work?
-
-Simply open Lrc-R and load your audio file, then paste or import your lyrics. Hit the **TAG** button as each line starts playing and Lrc-R will stamp it with the exact playback position. Made a mistake? Undo the last action, untag a single line, or reset all timestamps and start over. Once every line is tagged, copy the LRC to your clipboard or save the `.lrc` file directly to your device and drop it into any music player that supports synced lyrics.
-
 ### Features
 
 🎵 **Tap to Tag:** Hit the TAG button as each lyric line plays and Lrc-R stamps it with a precise timestamp automatically.
@@ -33,7 +29,15 @@ Simply open Lrc-R and load your audio file, then paste or import your lyrics. Hi
 
 🌐 **Fully Offline:** No internet connection required. No cloud, no tracking. Your data stays where it belongs: solely on your device.
 
-## Download
+### LIVE DEMO!
+
+Go here to try out the Lrc-R demo! https://resurrectdev1.github.io/Lrc-R/
+
+### How does it work?
+
+Simply open Lrc-R and load your audio file, then paste or import your lyrics. Hit the **TAG** button as each line starts playing and Lrc-R will stamp it with the exact playback position. Made a mistake? Undo the last action, untag a single line, or reset all timestamps and start over. Once every line is tagged, copy the LRC to your clipboard or save the `.lrc` file directly to your device and drop it into any music player that supports synced lyrics.
+
+### Download
 
 [![Downloads](https://img.shields.io/github/downloads/resurrectdev1/Lrc-R/total)](https://github.com/resurrectdev1/Lrc-R/releases)
 [![Reproducibility](https://img.shields.io/badge/Reproducible%20Build-F--Droid-blue)](https://verification.f-droid.org/packages/com.resurrect.lrc_r/)
@@ -55,19 +59,19 @@ alt="Get it on Obtainium" align="center" height="80" /></a>
 <img src="https://f-droid.org/badge/get-it-on.png"
 alt="Get it on F-Droid" align="center" height="80" /></a>
 
-## Support The App
+### Support The App
 
 **Lrc-R** is free forever: no subscriptions, no ads, and no data harvesting. Just you and your music. If Lrc-R has helped make your music experience feel complete, consider supporting its continued development so it can keep growing.
 
 [<img src="https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" width="auto" height="100" alt="Buy me a Coffee">](https://buymeacoffee.com/resurrect)
 
-## Development
+### Development
 
 **Lrc-R** is built using Flutter, pinned to a specific version (see `flutter` in `pubspec.yaml`) to keep builds consistent. [Install Flutter](https://docs.flutter.dev/get-started/install) at that version, or use [FVM](https://fvm.app/) to manage it (`fvm install <version> && fvm use <version>`). Then clone the repository, enter the project directory, and run `flutter pub get` (or `fvm flutter pub get`), followed by connecting your phone with USB debugging enabled, granting the necessary permissions, and finally running `flutter run --release` (or `fvm flutter run --release`).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more on the project structure, code style, and setup details.
 
-## License
+### License
 
 This software is licensed under the GNU General Public License 3.0.
 
