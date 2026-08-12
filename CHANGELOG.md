@@ -15,6 +15,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added Banner in Github social preview, website, & releases
 - Add analysis job to apk build workflow
 
+### Fixed
+
+- Audio not loading in web demo
+
 ---
 
 ## [0.2.8] - 2026-06-23
