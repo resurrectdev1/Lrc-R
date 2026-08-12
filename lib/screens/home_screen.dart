@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -178,11 +180,19 @@ with WidgetsBindingObserver {
     final result = await FilePicker.platform.pickFiles(
       type:          FileType.audio,
       allowMultiple: false,
+      withData:      kIsWeb,
       dialogTitle:   'Choose an audio file',
     );
-    if (result == null || result.files.single.path == null) return;
+    if (result == null) return;
+    final picked = result.files.single;
     await session.unloadAudio();
-    await session.loadAudio(result.files.single.path!, result.files.single.name);
+    if (kIsWeb) {
+      if (picked.bytes == null) return;
+      await session.loadAudioBytes(picked.bytes!, picked.name);
+    } else {
+      if (picked.path == null) return;
+      await session.loadAudio(picked.path!, picked.name);
+    }
     if (mounted) {
       HapticFeedback.lightImpact();
       await Future.delayed(const Duration(milliseconds: 80));
@@ -196,10 +206,19 @@ with WidgetsBindingObserver {
       type:              FileType.custom,
       allowedExtensions: ['txt', 'lrc'],
       allowMultiple:     false,
+      withData:          kIsWeb,
       dialogTitle:       'Choose a lyrics file (.txt or .lrc)',
     );
-    if (result == null || result.files.single.path == null) return;
-    final raw = await File(result.files.single.path!).readAsString();
+    if (result == null) return;
+    final picked = result.files.single;
+    final String raw;
+    if (kIsWeb) {
+      if (picked.bytes == null) return;
+      raw = utf8.decode(picked.bytes!);
+    } else {
+      if (picked.path == null) return;
+      raw = await File(picked.path!).readAsString();
+    }
     await _loadRawLyrics(session, raw);
     if (mounted) HapticFeedback.lightImpact();
   }
