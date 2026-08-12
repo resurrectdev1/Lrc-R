@@ -178,10 +178,11 @@ with WidgetsBindingObserver {
 
   Future<void> _pickAudio(LrcSession session) async {
     final result = await FilePicker.platform.pickFiles(
-      type:          FileType.audio,
-      allowMultiple: false,
-      withData:      kIsWeb,
-      dialogTitle:   'Choose an audio file',
+      type:              FileType.custom,
+      allowedExtensions: ['mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'aiff', 'alac'],
+      allowMultiple:     false,
+      withData:          kIsWeb,
+      dialogTitle:       'Choose an audio file',
     );
     if (result == null) return;
     final picked = result.files.single;
