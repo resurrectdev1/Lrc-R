@@ -141,7 +141,7 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     await _player.setPlaybackRate(playbackSpeed);
     notifyListeners();
   }
-  
+
   Future<void> loadAudioBytes(Uint8List bytes, String name) async {
     audioPath = null;
     audioName = name;
