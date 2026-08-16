@@ -4,7 +4,7 @@
 <h1 align="center">Lrc-R</h1>
 <h2 align="center">Read the rhythm.</h2>
 
-Whether you're syncing your favourite songs, preserving lyrics for offline players, or just want your music experience to feel complete, **Lrc-R** helps you create perfect synced lyrics files with ease. Tap along to your music, stamp each line with a precise timestamp, and export a ready-to-use `.lrc` file, all processed locally on your device.
+Whether you're syncing your favorite songs, or uploading to a database like lrclib, **Lrc-R** helps you create perfect synced lyrics files with ease. Tap along to your music, stamp each line with a precise timestamp, and export a ready-to-use `.lrc` file, all processed locally on your device.
 
 <p align="center">
 <img width="200" src="https://github.com/resurrectdev1/Lrc-R/blob/main/assets/screenshot_1.png">
@@ -17,13 +17,13 @@ Whether you're syncing your favourite songs, preserving lyrics for offline playe
 
 🎵 **Tap to Tag:** Hit the TAG button as each lyric line plays and Lrc-R stamps it with a precise timestamp automatically.
 
-⏪ **Full Playback Control:** Built-in audio player with scrubbing, ±5s skip, and adjustable playback speed (0.5× – 1.5×) to make tagging easier.
+⏪ **Advanced Playback Control:** Built-in audio player with scrubbing, ±5s skip, and adjustable playback speed (0.5× – 1.5×) to make tagging easier.
 
 ✏️ **Live Editing:** Reorder lines by dragging, edit text inline, delete lines, and undo any action at any time.
 
 🎨 **Material You Integration:** Supports Android 12+ dynamic coloring, AMOLED black, and a clean light theme alongside the default dark blue.
 
-📤 **Flexible Export:** Copy your LRC to clipboard or save the `.lrc` file directly to any path on your device. Timestamp offset support to compensate for playback latency.
+📤 **Flexible Export:** Copy your LRC to clipboard or save the `.lrc` file directly to any path on your device.
 
 💾 **Draft Autosave:** Your session is automatically saved when you leave the app, so you can pick up right where you left off.
 
@@ -35,7 +35,7 @@ Go here to try out the Lrc-R demo! https://resurrectdev1.github.io/Lrc-R/
 
 ### How does it work?
 
-Simply open Lrc-R and load your audio file, then paste or import your lyrics. Hit the **TAG** button as each line starts playing and Lrc-R will stamp it with the exact playback position. Made a mistake? Undo the last action, untag a single line, or reset all timestamps and start over. Once every line is tagged, copy the LRC to your clipboard or save the `.lrc` file directly to your device and drop it into any music player that supports synced lyrics.
+Simply open Lrc-R & load your audio file, then paste or import your lyrics. Hit the **TAG** button as each line starts playing and Lrc-R will stamp it with the exact playback timestamp. Made a mistake? Undo the last action, untag a single line, or reset all timestamps and start over. Once every line is tagged, copy the LRC to your clipboard or save the `.lrc` file directly to your device and drop it into any music player that supports synced lyrics.
 
 ### Download
 
