@@ -1,0 +1,54 @@
+{
+    "id": "/Lrc-R/",
+    "name": "Lrc-R",
+    "short_name": "Lrc-R",
+    "start_url": ".",
+    "scope": "/Lrc-R/",
+    "display": "standalone",
+    "background_color": "#080E18",
+    "theme_color": "#080E18",
+    "description": "Perceive your music.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "categories": ["music", "entertainment", "utilities"],
+    "screenshots": [
+        {
+            "src": "screenshots/screenshot_1.png",
+            "sizes": "1096x2466",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Lrc-R homepage view"
+        },
+        {
+            "src": "screenshots/screenshot_2.png",
+            "sizes": "1096x2466",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Lrc-R homepage populated view"
+        }
+    ],
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
