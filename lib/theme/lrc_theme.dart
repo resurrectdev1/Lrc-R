@@ -120,10 +120,32 @@ class LrcTheme {
     }
   }
 
-  static const accentBlue = Color(0xFF2261A1);
+  Color get accentBlue {
+    if (mode == LrcThemeMode.materialYou) {
+      return dynamicScheme?.primary ?? _accentBlueDefault;
+    }
+    return _accentBlueDefault;
+  }
+
+  Color get accentTeal {
+    if (mode == LrcThemeMode.materialYou) {
+      return dynamicScheme?.tertiary ?? _accentTealDefault;
+    }
+    return _accentTealDefault;
+  }
+
+  Color get accentPurple {
+    if (mode == LrcThemeMode.materialYou) {
+      return dynamicScheme?.secondary ?? _accentPurpleDefault;
+    }
+    return _accentPurpleDefault;
+  }
+
+  static const _accentBlueDefault = Color(0xFF2261A1);
+  static const _accentTealDefault = Color(0xFF3EC9C9);
+  static const _accentPurpleDefault = Color(0xFF7B68EE);
+
   static const accentBlueLight = Color(0xFF4D8FCC);
-  static const accentTeal = Color(0xFF3EC9C9);
   static const accentGreen = Color(0xFF4CAF82);
-  static const accentPurple = Color(0xFF7B68EE);
   static const errorRed = Color(0xFFCF6679);
 }
