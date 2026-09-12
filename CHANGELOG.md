@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+### Changed
+
+- Material you used in all aspects of the app
+
+### Fixed
+
+- Missing v0.3.0 changelog in CHANGELOG.md
+
 ---
 
 ## [0.3.2] - 2026-09-12
@@ -29,6 +37,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Gradle bump to 9.5.1
 - Formatted all code via dart format for a cleaner codebase
 - Updated dart packages
+
+---
+
+## [0.3.0] - 2026-06-23
+
+### Fixed
+
+- Fixed undo button clearing the tagged line instead of restoring said line
+- Audio playing even after closing app
+
+### Changed
+
+- Rearranged metadata export to be ar, al, ti, by & then length
+- Allow changing [by] metadata
+- Flutter dependency upgrade
 
 ---
 
