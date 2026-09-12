@@ -463,7 +463,7 @@ with WidgetsBindingObserver {
           fileName:      fileName,
           type:          FileType.custom,
           allowedExtensions: ['lrc'],
-          bytes:         Uint8List.fromList(lrc.codeUnits),
+          bytes:         Uint8List.fromList(utf8.encode(lrc)),
         );
 
         if (savePath == null) return;
