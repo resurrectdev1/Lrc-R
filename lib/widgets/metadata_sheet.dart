@@ -22,9 +22,9 @@ class _MetadataSheetState extends State<MetadataSheet> {
     super.initState();
     final session = context.read<LrcSession>();
     _artistCtrl = TextEditingController(text: session.artist);
-    _albumCtrl  = TextEditingController(text: session.album);
-    _titleCtrl  = TextEditingController(text: session.title);
-    _byCtrl     = TextEditingController(text: session.by);
+    _albumCtrl = TextEditingController(text: session.album);
+    _titleCtrl = TextEditingController(text: session.title);
+    _byCtrl = TextEditingController(text: session.by);
   }
 
   @override
@@ -38,72 +38,90 @@ class _MetadataSheetState extends State<MetadataSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme     = widget.theme;
+    final theme = widget.theme;
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final session   = context.read<LrcSession>();
+    final session = context.read<LrcSession>();
 
     return Container(
       decoration: BoxDecoration(
-        color:        theme.surfaceHigh,
+        color: theme.surfaceHigh,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPad),
       child: Column(
-        mainAxisSize:       MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               decoration: BoxDecoration(
-                color:        theme.textMuted.withValues(alpha: 0.4),
+                color: theme.textMuted.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           const SizedBox(height: 20),
-          Text('LRC Metadata', style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w800, color: theme.textPrimary)),
-            Text('Embedded in the [ar:] [al:] [ti:] [by:] tags',
-                 style: TextStyle(fontSize: 12, color: theme.textSecondary)),
-                 const SizedBox(height: 20),
-                 _field(_artistCtrl, 'Artist', Icons.person_rounded,     theme),
-                 const SizedBox(height: 12),
-                 _field(_albumCtrl,  'Album',  Icons.album_rounded,      theme),
-                 const SizedBox(height: 12),
-                 _field(_titleCtrl,  'Title',  Icons.music_note_rounded, theme),
-                 const SizedBox(height: 12),
-                 _field(_byCtrl,     'By',     Icons.edit_note_rounded,  theme),
-                 const SizedBox(height: 20),
-                 SizedBox(
-                   width: double.infinity, height: 50,
-                   child: FilledButton(
-                     style: FilledButton.styleFrom(
-                       backgroundColor: theme.primary,
-                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                     ),
-                     onPressed: () {
-                       session.setArtist(_artistCtrl.text.trim());
-                       session.setAlbum(_albumCtrl.text.trim());
-                       session.setTitle(_titleCtrl.text.trim());
-                       session.setBy(_byCtrl.text.trim());
-                       Navigator.pop(context);
-                     },
-                     child: const Text('Save',
-                                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                   ),
-                 ),
+          Text(
+            'LRC Metadata',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: theme.textPrimary,
+            ),
+          ),
+          Text(
+            'Embedded in the [ar:] [al:] [ti:] [by:] tags',
+            style: TextStyle(fontSize: 12, color: theme.textSecondary),
+          ),
+          const SizedBox(height: 20),
+          _field(_artistCtrl, 'Artist', Icons.person_rounded, theme),
+          const SizedBox(height: 12),
+          _field(_albumCtrl, 'Album', Icons.album_rounded, theme),
+          const SizedBox(height: 12),
+          _field(_titleCtrl, 'Title', Icons.music_note_rounded, theme),
+          const SizedBox(height: 12),
+          _field(_byCtrl, 'By', Icons.edit_note_rounded, theme),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () {
+                session.setArtist(_artistCtrl.text.trim());
+                session.setAlbum(_albumCtrl.text.trim());
+                session.setTitle(_titleCtrl.text.trim());
+                session.setBy(_byCtrl.text.trim());
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon, LrcTheme theme) =>
-  TextField(
+  Widget _field(
+    TextEditingController ctrl,
+    String label,
+    IconData icon,
+    LrcTheme theme,
+  ) => TextField(
     controller: ctrl,
-    style:      TextStyle(color: theme.textPrimary, fontSize: 14),
+    style: TextStyle(color: theme.textPrimary, fontSize: 14),
     decoration: InputDecoration(
-      labelText:  label,
+      labelText: label,
       prefixIcon: Icon(icon, size: 18, color: theme.textMuted),
     ),
   );
