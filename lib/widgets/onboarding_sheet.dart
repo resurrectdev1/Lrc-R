@@ -77,9 +77,11 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
     ),
   ];
 
+  static const _stepCount = 5;
+
   void _advance() {
     HapticFeedback.selectionClick();
-    if (_page < _steps.length - 1) {
+    if (_page < _stepCount - 1) {
       setState(() => _page++);
     } else {
       Navigator.pop(context);
@@ -97,7 +99,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final steps = _steps(theme);
     final step = steps[_page];
-    final isLast = _page == steps.length - 1;
+    final isLast = _page == _stepCount - 1;
     final isFirst = _page == 0;
 
     return Container(
@@ -165,7 +167,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              steps.length,
+              _stepCount,
               (i) => AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
