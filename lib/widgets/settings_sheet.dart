@@ -179,12 +179,12 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: LrcTheme.accentTeal.withValues(alpha: 0.12),
+                            color: theme.accentTeal.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(9),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.tune_rounded,
-                            color: LrcTheme.accentTeal,
+                            color: theme.accentTeal,
                             size: 16,
                           ),
                         ),
@@ -217,18 +217,18 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: LrcTheme.accentTeal.withValues(alpha: 0.12),
+                            color: theme.accentTeal.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: LrcTheme.accentTeal.withValues(alpha: 0.3),
+                              color: theme.accentTeal.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
                             '${liveSettings.timestampOffsetMs > 0 ? '+' : ''}${liveSettings.timestampOffsetMs} ms',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: LrcTheme.accentTeal,
+                              color: theme.accentTeal,
                             ),
                           ),
                         ),
@@ -244,10 +244,10 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                         overlayShape: const RoundSliderOverlayShape(
                           overlayRadius: 16,
                         ),
-                        activeTrackColor: LrcTheme.accentTeal,
+                        activeTrackColor: theme.accentTeal,
                         inactiveTrackColor: theme.surfaceHigh,
-                        thumbColor: LrcTheme.accentTeal,
-                        overlayColor: LrcTheme.accentTeal.withValues(
+                        thumbColor: theme.accentTeal,
+                        overlayColor: theme.accentTeal.withValues(
                           alpha: 0.15,
                         ),
                       ),
