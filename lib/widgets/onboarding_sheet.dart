@@ -8,7 +8,7 @@ import '../theme/lrc_theme.dart';
 const _kOnboardingDone = 'lrc_onboarding_done';
 Future<bool> shouldShowOnboarding() async {
   final prefs = await SharedPreferences.getInstance();
-  final done  = prefs.getBool(_kOnboardingDone) ?? false;
+  final done = prefs.getBool(_kOnboardingDone) ?? false;
   if (!done) await prefs.setBool(_kOnboardingDone, true);
   return !done;
 }
@@ -25,50 +25,55 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
 
   static const _steps = [
     _OnboardStep(
-      icon:      Icons.lyrics_rounded,
+      icon: Icons.lyrics_rounded,
       iconColor: LrcTheme.accentBlue,
-      title:     'Welcome to Lrc-R 🎧',
-      body:      'A free, open-source synced-lyrics editor. '
-    'Tap along to your music and export a perfect .lrc file '
-    'everything is processed locally on your device, no cloud needed.',
-    kind:      _StepKind.intro,
+      title: 'Welcome to Lrc-R 🎧',
+      body:
+          'A free, open-source synced-lyrics editor. '
+          'Tap along to your music and export a perfect .lrc file '
+          'everything is processed locally on your device, no cloud needed.',
+      kind: _StepKind.intro,
     ),
     _OnboardStep(
-      icon:      Icons.audiotrack_rounded,
+      icon: Icons.audiotrack_rounded,
       iconColor: LrcTheme.accentPurple,
-      title:     'Load Your Audio',
-      body:      'Pick any MP3, FLAC, M4A, WAV or OGG file from your device. '
-    'The built-in player lets you scrub, skip ±5 s, and adjust '
-    'playback speed to make tagging easier.',
-    kind:      _StepKind.audio,
+      title: 'Load Your Audio',
+      body:
+          'Pick any MP3, FLAC, M4A, WAV or OGG file from your device. '
+          'The built-in player lets you scrub, skip ±5 s, and adjust '
+          'playback speed to make tagging easier.',
+      kind: _StepKind.audio,
     ),
     _OnboardStep(
-      icon:      Icons.text_snippet_rounded,
+      icon: Icons.text_snippet_rounded,
       iconColor: LrcTheme.accentTeal,
-      title:     'Add Your Lyrics',
-      body:      'Paste plain-text lyrics, open an existing .lrc or .txt file, '
-    'or type each line directly. Lines can be reordered by dragging, '
-    'edited inline, or deleted at any time.',
-    kind:      _StepKind.lyrics,
+      title: 'Add Your Lyrics',
+      body:
+          'Paste plain-text lyrics, open an existing .lrc or .txt file, '
+          'or type each line directly. Lines can be reordered by dragging, '
+          'edited inline, or deleted at any time.',
+      kind: _StepKind.lyrics,
     ),
     _OnboardStep(
-      icon:      Icons.touch_app_rounded,
+      icon: Icons.touch_app_rounded,
       iconColor: LrcTheme.accentGreen,
-      title:     'Tap to Tag',
-      body:      'Hit the TAG button as each lyric line starts playing. '
-    'Lrc-R stamps it with the exact playback position. '
-    'Made a mistake? Undo the last action, untag a single line, '
-    'or reset all timestamps and start over.',
-    kind:      _StepKind.tag,
+      title: 'Tap to Tag',
+      body:
+          'Hit the TAG button as each lyric line starts playing. '
+          'Lrc-R stamps it with the exact playback position. '
+          'Made a mistake? Undo the last action, untag a single line, '
+          'or reset all timestamps and start over.',
+      kind: _StepKind.tag,
     ),
     _OnboardStep(
-      icon:      Icons.download_rounded,
+      icon: Icons.download_rounded,
       iconColor: LrcTheme.accentBlue,
-      title:     'Export & Share',
-      body:      'Once all lines are tagged, copy the LRC to your clipboard '
-    'or save the .lrc file directly to your desired path in your device. '
-    'Drop it into any music player that supports synced lyrics and enjoy!',
-    kind:      _StepKind.export,
+      title: 'Export & Share',
+      body:
+          'Once all lines are tagged, copy the LRC to your clipboard '
+          'or save the .lrc file directly to your desired path in your device. '
+          'Drop it into any music player that supports synced lyrics and enjoy!',
+      kind: _StepKind.export,
     ),
   ];
 
@@ -88,15 +93,15 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme     = context.watch<LrcSettings>().theme;
+    final theme = context.watch<LrcSettings>().theme;
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final step      = _steps[_page];
-    final isLast    = _page == _steps.length - 1;
-    final isFirst   = _page == 0;
+    final step = _steps[_page];
+    final isLast = _page == _steps.length - 1;
+    final isFirst = _page == 0;
 
     return Container(
       decoration: BoxDecoration(
-        color:        theme.surfaceHigh,
+        color: theme.surfaceHigh,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(28, 28, 28, 28 + bottomPad),
@@ -104,9 +109,10 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
-              color:        theme.textMuted.withValues(alpha: 0.4),
+              color: theme.textMuted.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -114,12 +120,13 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, anim) =>
-            FadeTransition(opacity: anim, child: child),
+                FadeTransition(opacity: anim, child: child),
             child: Container(
-              key:    ValueKey('icon_$_page'),
-              width:  96, height: 96,
+              key: ValueKey('icon_$_page'),
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                color:        step.iconColor.withValues(alpha: 0.12),
+                color: step.iconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Icon(step.icon, color: step.iconColor, size: 48),
@@ -130,11 +137,11 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
             duration: const Duration(milliseconds: 300),
             child: Text(
               step.title,
-              key:       ValueKey('title_$_page'),
-              style:     TextStyle(
-                fontSize:   22,
+              key: ValueKey('title_$_page'),
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color:      theme.textPrimary,
+                color: theme.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -144,11 +151,11 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
             duration: const Duration(milliseconds: 300),
             child: Text(
               step.body,
-              key:       ValueKey('body_$_page'),
-              style:     TextStyle(
+              key: ValueKey('body_$_page'),
+              style: TextStyle(
                 fontSize: 14,
-                color:    theme.textSecondary,
-                height:   1.65,
+                color: theme.textSecondary,
+                height: 1.65,
               ),
               textAlign: TextAlign.center,
             ),
@@ -156,18 +163,21 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
           const SizedBox(height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_steps.length, (i) => AnimatedContainer(
-              duration:  const Duration(milliseconds: 250),
-              margin:    const EdgeInsets.symmetric(horizontal: 3),
-              width:     i == _page ? 18 : 6,
-              height:    6,
-              decoration: BoxDecoration(
-                color:        i == _page
-                ? theme.primary
-                : theme.textMuted.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(3),
+            children: List.generate(
+              _steps.length,
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _page ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _page
+                      ? theme.primary
+                      : theme.textMuted.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
-            )),
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -178,10 +188,13 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
                     onPressed: _back,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.textSecondary,
-                        side:        BorderSide(color: theme.textMuted.withValues(alpha: 0.4)),
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(
+                        color: theme.textMuted.withValues(alpha: 0.4),
+                      ),
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: const Text('Back'),
                   ),
@@ -194,18 +207,23 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
                   onPressed: _advance,
                   style: FilledButton.styleFrom(
                     backgroundColor: isLast
-                    ? LrcTheme.accentBlue
-                    : theme.primary,
+                        ? LrcTheme.accentBlue
+                        : theme.primary,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: Text(
-                    isLast  ? 'Start Making LRCs 🎧' :
-                    isFirst ? 'Get Started'           :
-                    'Next',
+                    isLast
+                        ? 'Start Making LRCs 🎧'
+                        : isFirst
+                        ? 'Get Started'
+                        : 'Next',
                     style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -221,10 +239,10 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
 enum _StepKind { intro, audio, lyrics, tag, export }
 
 class _OnboardStep {
-  final IconData  icon;
-  final Color     iconColor;
-  final String    title;
-  final String    body;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String body;
   final _StepKind kind;
 
   const _OnboardStep({
