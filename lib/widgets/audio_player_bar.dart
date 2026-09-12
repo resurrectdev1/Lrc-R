@@ -4,8 +4,8 @@ import '../models/lrc_session.dart';
 import '../theme/lrc_theme.dart';
 
 class AudioPlayerBar extends StatelessWidget {
-  final LrcSession   session;
-  final LrcTheme     theme;
+  final LrcSession session;
+  final LrcTheme theme;
   final VoidCallback onChangeSong;
 
   const AudioPlayerBar({
@@ -19,18 +19,18 @@ class AudioPlayerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pos         = session.audioPosition;
-    final dur         = session.audioDuration;
-    final progress    = dur.inMilliseconds == 0
-    ? 0.0
-    : (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
+    final pos = session.audioPosition;
+    final dur = session.audioDuration;
+    final progress = dur.inMilliseconds == 0
+        ? 0.0
+        : (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
     return Container(
-      margin:  const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       decoration: BoxDecoration(
-        color:        theme.surface,
+        color: theme.surface,
         borderRadius: BorderRadius.circular(20),
-        border:       Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -43,9 +43,9 @@ class AudioPlayerBar extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize:   13,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color:      theme.textPrimary,
+                    color: theme.textPrimary,
                   ),
                 ),
               ),
@@ -53,22 +53,34 @@ class AudioPlayerBar extends StatelessWidget {
               GestureDetector(
                 onTap: onChangeSong,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color:        theme.surfaceHigh,
+                    color: theme.surfaceHigh,
                     borderRadius: BorderRadius.circular(20),
-                    border:       Border.all(color: theme.textMuted.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: theme.textMuted.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.swap_horiz_rounded, size: 12, color: theme.textSecondary),
+                      Icon(
+                        Icons.swap_horiz_rounded,
+                        size: 12,
+                        color: theme.textSecondary,
+                      ),
                       const SizedBox(width: 4),
-                      Text('Change', style: TextStyle(
-                        fontSize:   11,
-                        fontWeight: FontWeight.w600,
-                        color:      theme.textSecondary,
-                      )),
+                      Text(
+                        'Change',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -79,18 +91,19 @@ class AudioPlayerBar extends StatelessWidget {
 
           SliderTheme(
             data: SliderThemeData(
-              trackHeight:        3,
-              thumbShape:         const RoundSliderThumbShape(enabledThumbRadius: 5),
-              overlayShape:       const RoundSliderOverlayShape(overlayRadius: 12),
-              activeTrackColor:   theme.primary,
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+              activeTrackColor: theme.primary,
               inactiveTrackColor: theme.surfaceHigh,
-              thumbColor:         theme.primary,
-              overlayColor:       theme.primary.withValues(alpha: 0.15),
+              thumbColor: theme.primary,
+              overlayColor: theme.primary.withValues(alpha: 0.15),
             ),
             child: Slider(
-              value:     progress,
+              value: progress,
               onChanged: (v) => session.seek(
-                Duration(milliseconds: (v * dur.inMilliseconds).round())),
+                Duration(milliseconds: (v * dur.inMilliseconds).round()),
+              ),
             ),
           ),
 
@@ -99,10 +112,14 @@ class AudioPlayerBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(session.formatDuration(pos),
-                style: TextStyle(fontSize: 10, color: theme.textMuted)),
-                Text(session.formatDuration(dur),
-                style: TextStyle(fontSize: 10, color: theme.textMuted)),
+                Text(
+                  session.formatDuration(pos),
+                  style: TextStyle(fontSize: 10, color: theme.textMuted),
+                ),
+                Text(
+                  session.formatDuration(dur),
+                  style: TextStyle(fontSize: 10, color: theme.textMuted),
+                ),
               ],
             ),
           ),
@@ -111,31 +128,35 @@ class AudioPlayerBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _CtrlBtn(
-                icon:  Icons.replay_5_rounded,
+                icon: Icons.replay_5_rounded,
                 color: theme.textSecondary,
-                size:  20,
+                size: 20,
                 onTap: session.skipBack5,
               ),
               const SizedBox(width: 10),
               GestureDetector(
                 onTap: session.playPause,
                 child: Container(
-                  width: 42, height: 42,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
-                    color:        theme.primary,
+                    color: theme.primary,
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Icon(
-                    session.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: Colors.white, size: 22,
+                    session.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 22,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               _CtrlBtn(
-                icon:  Icons.forward_5_rounded,
+                icon: Icons.forward_5_rounded,
                 color: theme.textSecondary,
-                size:  20,
+                size: 20,
                 onTap: session.skipForward5,
               ),
             ],
@@ -147,39 +168,42 @@ class AudioPlayerBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: _speeds.map((speed) {
                 final active = session.playbackSpeed == speed;
-                final label  = speed == 1.0 ? '1×' : '$speed×';
-              return Padding(
-                padding: const EdgeInsets.only(right: 5),
-                child: GestureDetector(
-                  onTap: () {
-                    session.setSpeed(speed);
-                    HapticFeedback.selectionClick();
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding:  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: active
-                      ? theme.primary.withValues(alpha: 0.18)
-                      : theme.surfaceHigh,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: active
-                        ? theme.primary.withValues(alpha: 0.6)
-                        : theme.textMuted.withValues(alpha: 0.2),
+                final label = speed == 1.0 ? '1×' : '$speed×';
+                return Padding(
+                  padding: const EdgeInsets.only(right: 5),
+                  child: GestureDetector(
+                    onTap: () {
+                      session.setSpeed(speed);
+                      HapticFeedback.selectionClick();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize:   10,
-                        fontWeight: FontWeight.w700,
-                        color:      active ? theme.primary : theme.textMuted,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? theme.primary.withValues(alpha: 0.18)
+                            : theme.surfaceHigh,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: active
+                              ? theme.primary.withValues(alpha: 0.6)
+                              : theme.textMuted.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: active ? theme.primary : theme.textMuted,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
+                );
               }).toList(),
             ),
           ),
@@ -190,21 +214,26 @@ class AudioPlayerBar extends StatelessWidget {
 }
 
 class _CtrlBtn extends StatelessWidget {
-  final IconData     icon;
-  final Color        color;
-  final double       size;
+  final IconData icon;
+  final Color color;
+  final double size;
   final VoidCallback onTap;
 
-  const _CtrlBtn({required this.icon, required this.color,
-    required this.size, required this.onTap});
+  const _CtrlBtn({
+    required this.icon,
+    required this.color,
+    required this.size,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      width: 36, height: 36,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
-        color:        color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(icon, color: color, size: size),
