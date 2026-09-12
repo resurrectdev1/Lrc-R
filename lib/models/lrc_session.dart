@@ -6,22 +6,27 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LrcLine {
-  final String   text;
+  final String text;
   final Duration? timestamp;
 
   const LrcLine({required this.text, this.timestamp});
 
-  LrcLine copyWith({String? text, Duration? timestamp, bool clearTimestamp = false}) =>
-  LrcLine(
-    text:      text ?? this.text,
+  LrcLine copyWith({
+    String? text,
+    Duration? timestamp,
+    bool clearTimestamp = false,
+  }) => LrcLine(
+    text: text ?? this.text,
     timestamp: clearTimestamp ? null : (timestamp ?? this.timestamp),
   );
 
   String get lrcTimestamp {
     if (timestamp == null) return '';
-    final m  = timestamp!.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s  = timestamp!.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final cs = (timestamp!.inMilliseconds.remainder(1000) ~/ 10).toString().padLeft(2, '0');
+    final m = timestamp!.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = timestamp!.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final cs = (timestamp!.inMilliseconds.remainder(1000) ~/ 10)
+        .toString()
+        .padLeft(2, '0');
     return '[$m:$s.$cs]';
   }
 
@@ -31,20 +36,20 @@ class LrcLine {
 sealed class _UndoAction {}
 
 class _TagAction extends _UndoAction {
-  final int       index;
-  final Duration  timestamp;
+  final int index;
+  final Duration timestamp;
   final Duration? previousTimestamp;
   _TagAction(this.index, this.timestamp, this.previousTimestamp);
 }
 
 class _EditAction extends _UndoAction {
-  final int    index;
+  final int index;
   final String previousText;
   _EditAction(this.index, this.previousText);
 }
 
 class _DeleteAction extends _UndoAction {
-  final int     index;
+  final int index;
   final LrcLine line;
   _DeleteAction(this.index, this.line);
 }
@@ -69,39 +74,54 @@ class MetadataConflict {
 class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   final AudioPlayer _player = AudioPlayer();
 
-  String?  audioPath;
-  String?  audioName;
+  String? audioPath;
+  String? audioName;
   Duration audioDuration = Duration.zero;
   Duration audioPosition = Duration.zero;
-  bool     isPlaying     = false;
-  double   playbackSpeed = 1.0;
+  bool isPlaying = false;
+  double playbackSpeed = 1.0;
 
-  List<LrcLine>   lines    = [];
-  String?         lyricsRaw;
-  int             tagIndex = 0;
+  List<LrcLine> lines = [];
+  String? lyricsRaw;
+  int tagIndex = 0;
 
   final List<_UndoAction> _undoStack = [];
   static const _maxUndo = 20;
 
-  String _title  = '';
+  String _title = '';
   String _artist = '';
-  String _album  = '';
-  String _by     = '';
+  String _album = '';
+  String _by = '';
 
-  String get title  => _title;
+  String get title => _title;
   String get artist => _artist;
-  String get album  => _album;
-  String get by     => _by;
+  String get album => _album;
+  String get by => _by;
 
-  void setTitle(String v)  { _title  = v; notifyListeners(); }
-  void setArtist(String v) { _artist = v; notifyListeners(); }
-  void setAlbum(String v)  { _album  = v; notifyListeners(); }
-  void setBy(String v)     { _by     = v; notifyListeners(); }
+  void setTitle(String v) {
+    _title = v;
+    notifyListeners();
+  }
 
-  set title(String v)  => setTitle(v);
+  void setArtist(String v) {
+    _artist = v;
+    notifyListeners();
+  }
+
+  void setAlbum(String v) {
+    _album = v;
+    notifyListeners();
+  }
+
+  void setBy(String v) {
+    _by = v;
+    notifyListeners();
+  }
+
+  set title(String v) => setTitle(v);
   set artist(String v) => setArtist(v);
-  set album(String v)  => setAlbum(v);
-  set by(String v)     => setBy(v);
+  set album(String v) => setAlbum(v);
+  set by(String v) => setBy(v);
 
   LrcSession() {
     WidgetsBinding.instance.addObserver(this);
@@ -119,7 +139,7 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     });
     _player.onPlayerComplete.listen((_) async {
       await _player.seek(Duration.zero);
-      isPlaying     = false;
+      isPlaying = false;
       audioPosition = Duration.zero;
       notifyListeners();
     });
@@ -128,9 +148,9 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
-      state == AppLifecycleState.detached) {
+        state == AppLifecycleState.detached) {
       if (isPlaying) _player.pause();
-      }
+    }
   }
 
   Future<void> loadAudio(String path, String name) async {
@@ -179,11 +199,11 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> unloadAudio() async {
     await _player.stop();
     await _player.release();
-    audioPath     = null;
-    audioName     = null;
+    audioPath = null;
+    audioName = null;
     audioDuration = Duration.zero;
     audioPosition = Duration.zero;
-    isPlaying     = false;
+    isPlaying = false;
     notifyListeners();
   }
 
@@ -198,12 +218,22 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> seek(Duration position) async => _player.seek(position);
 
   Future<void> skipBack5() => _player.seek(
-    Duration(milliseconds: (audioPosition.inMilliseconds - 5000)
-    .clamp(0, audioDuration.inMilliseconds)));
+    Duration(
+      milliseconds: (audioPosition.inMilliseconds - 5000).clamp(
+        0,
+        audioDuration.inMilliseconds,
+      ),
+    ),
+  );
 
   Future<void> skipForward5() => _player.seek(
-    Duration(milliseconds: (audioPosition.inMilliseconds + 5000)
-    .clamp(0, audioDuration.inMilliseconds)));
+    Duration(
+      milliseconds: (audioPosition.inMilliseconds + 5000).clamp(
+        0,
+        audioDuration.inMilliseconds,
+      ),
+    ),
+  );
 
   Future<void> setSpeed(double speed) async {
     playbackSpeed = speed;
@@ -213,49 +243,53 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
 
   MetadataConflict? setLyricsText(String raw) {
     lyricsRaw = raw;
-    String parsedTitle  = '';
+    String parsedTitle = '';
     String parsedArtist = '';
-    String parsedAlbum  = '';
-    String parsedBy     = '';
+    String parsedAlbum = '';
+    String parsedBy = '';
     final parsed = _parseLrc(
       raw,
-      outTitle:  (v) => parsedTitle  = v,
+      outTitle: (v) => parsedTitle = v,
       outArtist: (v) => parsedArtist = v,
-      outAlbum:  (v) => parsedAlbum  = v,
-      outBy:     (v) => parsedBy     = v,
+      outAlbum: (v) => parsedAlbum = v,
+      outBy: (v) => parsedBy = v,
     );
 
     if (parsed != null) {
-      lines    = parsed;
+      lines = parsed;
       tagIndex = lines.indexWhere((l) => !l.isTagged);
       if (tagIndex == -1) tagIndex = lines.length;
     } else {
       lines = raw
-      .split('\n')
-      .map((l) => l.trim())
-      .where((l) => l.isNotEmpty)
-      .map((l) => LrcLine(text: l))
-      .toList();
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .map((l) => LrcLine(text: l))
+          .toList();
       tagIndex = 0;
     }
     _undoStack.clear();
 
-    final fileHasMeta = parsedTitle.isNotEmpty || parsedArtist.isNotEmpty || parsedAlbum.isNotEmpty;
-    final sessionHasMeta = _title.isNotEmpty || _artist.isNotEmpty || _album.isNotEmpty;
+    final fileHasMeta =
+        parsedTitle.isNotEmpty ||
+        parsedArtist.isNotEmpty ||
+        parsedAlbum.isNotEmpty;
+    final sessionHasMeta =
+        _title.isNotEmpty || _artist.isNotEmpty || _album.isNotEmpty;
 
     if (fileHasMeta && sessionHasMeta) {
       notifyListeners();
       return MetadataConflict(
-        fileTitle:  parsedTitle,
+        fileTitle: parsedTitle,
         fileArtist: parsedArtist,
-        fileAlbum:  parsedAlbum,
+        fileAlbum: parsedAlbum,
       );
     }
 
     if (fileHasMeta) {
-      if (_title.isEmpty  && parsedTitle.isNotEmpty)  _title  = parsedTitle;
+      if (_title.isEmpty && parsedTitle.isNotEmpty) _title = parsedTitle;
       if (_artist.isEmpty && parsedArtist.isNotEmpty) _artist = parsedArtist;
-      if (_album.isEmpty  && parsedAlbum.isNotEmpty)  _album  = parsedAlbum;
+      if (_album.isEmpty && parsedAlbum.isNotEmpty) _album = parsedAlbum;
     }
     if (_by.isEmpty && parsedBy.isNotEmpty) _by = parsedBy;
 
@@ -263,26 +297,32 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     return null;
   }
 
-  void applyMetadataConflict(MetadataConflict conflict, {required bool replace}) {
+  void applyMetadataConflict(
+    MetadataConflict conflict, {
+    required bool replace,
+  }) {
     if (replace) {
-      if (conflict.fileTitle.isNotEmpty)  _title  = conflict.fileTitle;
+      if (conflict.fileTitle.isNotEmpty) _title = conflict.fileTitle;
       if (conflict.fileArtist.isNotEmpty) _artist = conflict.fileArtist;
-      if (conflict.fileAlbum.isNotEmpty)  _album  = conflict.fileAlbum;
+      if (conflict.fileAlbum.isNotEmpty) _album = conflict.fileAlbum;
       notifyListeners();
     }
   }
 
   List<LrcLine>? _parseLrc(
     String raw, {
-      required void Function(String) outTitle,
-      required void Function(String) outArtist,
-      required void Function(String) outAlbum,
-      required void Function(String) outBy,
-    }) {
-    final tsPattern   = RegExp(r'^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$');
-    final metaPattern = RegExp(r'^\[(ti|ar|al|by|offset|length):(.*)\]$', caseSensitive: false);
+    required void Function(String) outTitle,
+    required void Function(String) outArtist,
+    required void Function(String) outAlbum,
+    required void Function(String) outBy,
+  }) {
+    final tsPattern = RegExp(r'^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$');
+    final metaPattern = RegExp(
+      r'^\[(ti|ar|al|by|offset|length):(.*)\]$',
+      caseSensitive: false,
+    );
 
-    final result        = <LrcLine>[];
+    final result = <LrcLine>[];
     bool foundTimestamp = false;
 
     for (final rawLine in raw.split('\n')) {
@@ -303,13 +343,18 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
       final ts = tsPattern.firstMatch(line);
       if (ts != null) {
         foundTimestamp = true;
-        final mins  = int.parse(ts.group(1)!);
-        final secs  = int.parse(ts.group(2)!);
+        final mins = int.parse(ts.group(1)!);
+        final secs = int.parse(ts.group(2)!);
         final csStr = ts.group(3)!;
-        final ms    = csStr.length == 2 ? int.parse(csStr) * 10 : int.parse(csStr);
-        final timestamp = Duration(minutes: mins, seconds: secs, milliseconds: ms);
-        final text      = ts.group(4)!.trim();
-        if (text.isNotEmpty) result.add(LrcLine(text: text, timestamp: timestamp));
+        final ms = csStr.length == 2 ? int.parse(csStr) * 10 : int.parse(csStr);
+        final timestamp = Duration(
+          minutes: mins,
+          seconds: secs,
+          milliseconds: ms,
+        );
+        final text = ts.group(4)!.trim();
+        if (text.isNotEmpty)
+          result.add(LrcLine(text: text, timestamp: timestamp));
       } else {
         result.add(LrcLine(text: line));
       }
@@ -323,243 +368,250 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
       return a.timestamp!.compareTo(b.timestamp!);
     });
     return result;
+  }
+
+  void tagCurrentLine() {
+    if (tagIndex >= lines.length) return;
+    _push(_TagAction(tagIndex, audioPosition, lines[tagIndex].timestamp));
+    lines[tagIndex] = lines[tagIndex].copyWith(timestamp: audioPosition);
+    tagIndex = (tagIndex + 1).clamp(0, lines.length);
+    notifyListeners();
+  }
+
+  bool undoLast() {
+    if (_undoStack.isEmpty) return false;
+    final action = _undoStack.removeLast();
+    switch (action) {
+      case _TagAction a:
+        lines[a.index] = a.previousTimestamp != null
+            ? lines[a.index].copyWith(timestamp: a.previousTimestamp)
+            : lines[a.index].copyWith(clearTimestamp: true);
+        tagIndex = a.index;
+      case _EditAction a:
+        lines[a.index] = lines[a.index].copyWith(text: a.previousText);
+      case _DeleteAction a:
+        lines.insert(a.index, a.line);
+        if (tagIndex >= a.index)
+          tagIndex = (tagIndex + 1).clamp(0, lines.length);
+      case _MoveAction a:
+        _moveLine(a.newIndex, a.oldIndex, pushUndo: false);
     }
+    notifyListeners();
+    return true;
+  }
 
-    void tagCurrentLine() {
-      if (tagIndex >= lines.length) return;
-      _push(_TagAction(tagIndex, audioPosition, lines[tagIndex].timestamp));
-      lines[tagIndex] = lines[tagIndex].copyWith(timestamp: audioPosition);
-      tagIndex = (tagIndex + 1).clamp(0, lines.length);
-      notifyListeners();
-    }
+  bool undoLastTag() => undoLast();
 
-    bool undoLast() {
-      if (_undoStack.isEmpty) return false;
-      final action = _undoStack.removeLast();
-      switch (action) {
-        case _TagAction a:
-          lines[a.index] = a.previousTimestamp != null
-          ? lines[a.index].copyWith(timestamp: a.previousTimestamp)
-          : lines[a.index].copyWith(clearTimestamp: true);
-          tagIndex = a.index;
-        case _EditAction a:
-          lines[a.index] = lines[a.index].copyWith(text: a.previousText);
-        case _DeleteAction a:
-          lines.insert(a.index, a.line);
-          if (tagIndex >= a.index) tagIndex = (tagIndex + 1).clamp(0, lines.length);
-        case _MoveAction a:
-          _moveLine(a.newIndex, a.oldIndex, pushUndo: false);
-      }
-      notifyListeners();
-      return true;
-    }
+  bool get canUndo => _undoStack.isNotEmpty;
 
-    bool undoLastTag() => undoLast();
+  void untag(int index) {
+    if (index < 0 || index >= lines.length) return;
+    lines[index] = lines[index].copyWith(clearTimestamp: true);
+    notifyListeners();
+  }
 
-    bool get canUndo => _undoStack.isNotEmpty;
+  void setTagIndex(int index) {
+    tagIndex = index.clamp(0, lines.length);
+    notifyListeners();
+  }
 
-    void untag(int index) {
-      if (index < 0 || index >= lines.length) return;
-      lines[index] = lines[index].copyWith(clearTimestamp: true);
-      notifyListeners();
-    }
+  void editLine(int index, String newText) {
+    if (index < 0 || index >= lines.length) return;
+    _push(_EditAction(index, lines[index].text));
+    lines[index] = lines[index].copyWith(text: newText);
+    notifyListeners();
+  }
 
-    void setTagIndex(int index) {
-      tagIndex = index.clamp(0, lines.length);
-      notifyListeners();
-    }
-
-    void editLine(int index, String newText) {
-      if (index < 0 || index >= lines.length) return;
-      _push(_EditAction(index, lines[index].text));
-      lines[index] = lines[index].copyWith(text: newText);
-      notifyListeners();
-    }
-
-    void deleteLine(int index) {
-      if (index < 0 || index >= lines.length) return;
-      _push(_DeleteAction(index, lines[index]));
-      lines.removeAt(index);
-      if (tagIndex > index) tagIndex = (tagIndex - 1).clamp(0, lines.length);
-      for (var i = _undoStack.length - 1; i >= 0; i--) {
-        final a = _undoStack[i];
-        if ((a is _TagAction  && a.index == index) ||
+  void deleteLine(int index) {
+    if (index < 0 || index >= lines.length) return;
+    _push(_DeleteAction(index, lines[index]));
+    lines.removeAt(index);
+    if (tagIndex > index) tagIndex = (tagIndex - 1).clamp(0, lines.length);
+    for (var i = _undoStack.length - 1; i >= 0; i--) {
+      final a = _undoStack[i];
+      if ((a is _TagAction && a.index == index) ||
           (a is _EditAction && a.index == index)) {
-          _undoStack.removeAt(i);
-          }
-      }
-      notifyListeners();
-    }
-
-    void moveLine(int oldIndex, int newIndex) {
-      _moveLine(oldIndex, newIndex, pushUndo: true);
-      notifyListeners();
-    }
-
-    void _moveLine(int oldIndex, int newIndex, {required bool pushUndo}) {
-      if (oldIndex == newIndex) return;
-      if (oldIndex < 0 || oldIndex >= lines.length) return;
-      if (newIndex < 0 || newIndex >= lines.length) return;
-      if (pushUndo) _push(_MoveAction(oldIndex, newIndex));
-      final line = lines.removeAt(oldIndex);
-      lines.insert(newIndex, line);
-      if (tagIndex == oldIndex) {
-        tagIndex = newIndex;
-      } else if (oldIndex < newIndex) {
-        if (tagIndex > oldIndex && tagIndex <= newIndex) tagIndex--;
-      } else {
-        if (tagIndex >= newIndex && tagIndex < oldIndex) tagIndex++;
+        _undoStack.removeAt(i);
       }
     }
+    notifyListeners();
+  }
 
-    void addLine(int afterIndex, {String text = ''}) {
-      final insertAt = (afterIndex + 1).clamp(0, lines.length);
-      lines.insert(insertAt, LrcLine(text: text));
-      notifyListeners();
+  void moveLine(int oldIndex, int newIndex) {
+    _moveLine(oldIndex, newIndex, pushUndo: true);
+    notifyListeners();
+  }
+
+  void _moveLine(int oldIndex, int newIndex, {required bool pushUndo}) {
+    if (oldIndex == newIndex) return;
+    if (oldIndex < 0 || oldIndex >= lines.length) return;
+    if (newIndex < 0 || newIndex >= lines.length) return;
+    if (pushUndo) _push(_MoveAction(oldIndex, newIndex));
+    final line = lines.removeAt(oldIndex);
+    lines.insert(newIndex, line);
+    if (tagIndex == oldIndex) {
+      tagIndex = newIndex;
+    } else if (oldIndex < newIndex) {
+      if (tagIndex > oldIndex && tagIndex <= newIndex) tagIndex--;
+    } else {
+      if (tagIndex >= newIndex && tagIndex < oldIndex) tagIndex++;
     }
+  }
 
-    void resetAllTags() {
-      lines = lines.map((l) => l.copyWith(clearTimestamp: true)).toList();
-      tagIndex = 0;
-      _undoStack.clear();
-      notifyListeners();
-    }
+  void addLine(int afterIndex, {String text = ''}) {
+    final insertAt = (afterIndex + 1).clamp(0, lines.length);
+    lines.insert(insertAt, LrcLine(text: text));
+    notifyListeners();
+  }
 
-    void clearLyrics() {
-      lines     = [];
-      lyricsRaw = null;
-      tagIndex  = 0;
-      _undoStack.clear();
-      notifyListeners();
-    }
+  void resetAllTags() {
+    lines = lines.map((l) => l.copyWith(clearTimestamp: true)).toList();
+    tagIndex = 0;
+    _undoStack.clear();
+    notifyListeners();
+  }
 
-    String buildLrc({int offsetMs = 0, bool minimal = false}) {
-      final buf = StringBuffer();
-      if (!minimal) {
-        if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
-        if (_album.isNotEmpty)  buf.writeln('[al:$_album]');
-        if (_title.isNotEmpty)  buf.writeln('[ti:$_title]');
-        if (_by.isNotEmpty) buf.writeln('[by:$_by]');
-        if (audioDuration > Duration.zero) {
-          buf.writeln('[length:${formatDuration(audioDuration)}]');
-        }
-        buf.writeln();
+  void clearLyrics() {
+    lines = [];
+    lyricsRaw = null;
+    tagIndex = 0;
+    _undoStack.clear();
+    notifyListeners();
+  }
+
+  String buildLrc({int offsetMs = 0, bool minimal = false}) {
+    final buf = StringBuffer();
+    if (!minimal) {
+      if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
+      if (_album.isNotEmpty) buf.writeln('[al:$_album]');
+      if (_title.isNotEmpty) buf.writeln('[ti:$_title]');
+      if (_by.isNotEmpty) buf.writeln('[by:$_by]');
+      if (audioDuration > Duration.zero) {
+        buf.writeln('[length:${formatDuration(audioDuration)}]');
       }
-      final sorted = [...lines]..sort((a, b) {
+      buf.writeln();
+    }
+    final sorted = [...lines]
+      ..sort((a, b) {
         if (a.timestamp == null && b.timestamp == null) return 0;
         if (a.timestamp == null) return 1;
         if (b.timestamp == null) return -1;
         return a.timestamp!.compareTo(b.timestamp!);
       });
-      for (final line in sorted) {
-        if (line.timestamp != null && offsetMs != 0) {
-          final shifted = Duration(
-            milliseconds: (line.timestamp!.inMilliseconds + offsetMs).clamp(0, 9999999));
-          final shiftedLine = line.copyWith(timestamp: shifted);
-          buf.writeln('${shiftedLine.lrcTimestamp}${line.text}');
-        } else {
-          buf.writeln('${line.lrcTimestamp}${line.text}');
-        }
-      }
-      return buf.toString();
-    }
-
-    static const _draftKey = 'lrc_r_draft';
-
-    Future<bool> hasDraft() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final raw   = prefs.getString(_draftKey);
-        if (raw == null) return false;
-        final json      = jsonDecode(raw) as Map<String, dynamic>;
-        final linesJson = json['lines'] as List?;
-        return linesJson != null && linesJson.isNotEmpty;
-      } catch (_) {
-        return false;
+    for (final line in sorted) {
+      if (line.timestamp != null && offsetMs != 0) {
+        final shifted = Duration(
+          milliseconds: (line.timestamp!.inMilliseconds + offsetMs).clamp(
+            0,
+            9999999,
+          ),
+        );
+        final shiftedLine = line.copyWith(timestamp: shifted);
+        buf.writeln('${shiftedLine.lrcTimestamp}${line.text}');
+      } else {
+        buf.writeln('${line.lrcTimestamp}${line.text}');
       }
     }
+    return buf.toString();
+  }
 
-    Future<void> saveDraft() async {
-      if (lines.isEmpty) return;
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final data  = {
-          'title':     _title,
-          'artist':    _artist,
-          'album':     _album,
-          'by':        _by,
-          'audioName': audioName,
-          'tagIndex':  tagIndex,
-          'lines': lines.map((l) => {
-            'text':      l.text,
-            'timestamp': l.timestamp?.inMilliseconds,
-          }).toList(),
-        };
-        await prefs.setString(_draftKey, jsonEncode(data));
-      } catch (_) {}
+  static const _draftKey = 'lrc_r_draft';
+
+  Future<bool> hasDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_draftKey);
+      if (raw == null) return false;
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      final linesJson = json['lines'] as List?;
+      return linesJson != null && linesJson.isNotEmpty;
+    } catch (_) {
+      return false;
     }
+  }
 
-    Future<bool> loadDraft() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final raw   = prefs.getString(_draftKey);
-        if (raw == null) return false;
-        final json  = jsonDecode(raw) as Map<String, dynamic>;
+  Future<void> saveDraft() async {
+    if (lines.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'title': _title,
+        'artist': _artist,
+        'album': _album,
+        'by': _by,
+        'audioName': audioName,
+        'tagIndex': tagIndex,
+        'lines': lines
+            .map(
+              (l) => {'text': l.text, 'timestamp': l.timestamp?.inMilliseconds},
+            )
+            .toList(),
+      };
+      await prefs.setString(_draftKey, jsonEncode(data));
+    } catch (_) {}
+  }
 
-        _title    = (json['title']  as String?) ?? '';
-        _artist   = (json['artist'] as String?) ?? '';
-        _album    = (json['album']  as String?) ?? '';
-        _by       = (json['by']     as String?) ?? '';
-        audioName = json['audioName'] as String?;
+  Future<bool> loadDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_draftKey);
+      if (raw == null) return false;
+      final json = jsonDecode(raw) as Map<String, dynamic>;
 
-        final linesJson = (json['lines'] as List?) ?? [];
-        lines = linesJson.map((e) {
-          final map = e as Map<String, dynamic>;
-          final ms  = map['timestamp'] as int?;
-          return LrcLine(
-            text:      map['text'] as String? ?? '',
-            timestamp: ms != null ? Duration(milliseconds: ms) : null,
-          );
-        }).toList();
+      _title = (json['title'] as String?) ?? '';
+      _artist = (json['artist'] as String?) ?? '';
+      _album = (json['album'] as String?) ?? '';
+      _by = (json['by'] as String?) ?? '';
+      audioName = json['audioName'] as String?;
 
-        tagIndex = (json['tagIndex'] as int?) ?? 0;
-        tagIndex = tagIndex.clamp(0, lines.length);
-        _undoStack.clear();
-        notifyListeners();
-        return true;
-      } catch (_) {
-        return false;
-      }
+      final linesJson = (json['lines'] as List?) ?? [];
+      lines = linesJson.map((e) {
+        final map = e as Map<String, dynamic>;
+        final ms = map['timestamp'] as int?;
+        return LrcLine(
+          text: map['text'] as String? ?? '',
+          timestamp: ms != null ? Duration(milliseconds: ms) : null,
+        );
+      }).toList();
+
+      tagIndex = (json['tagIndex'] as int?) ?? 0;
+      tagIndex = tagIndex.clamp(0, lines.length);
+      _undoStack.clear();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
     }
+  }
 
-    Future<void> discardDraft() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(_draftKey);
-      } catch (_) {}
-    }
+  Future<void> discardDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_draftKey);
+    } catch (_) {}
+  }
 
-    void _push(_UndoAction action) {
-      _undoStack.add(action);
-      if (_undoStack.length > _maxUndo) _undoStack.removeAt(0);
-    }
+  void _push(_UndoAction action) {
+    _undoStack.add(action);
+    if (_undoStack.length > _maxUndo) _undoStack.removeAt(0);
+  }
 
-    int  get taggedCount => lines.where((l) => l.isTagged).length;
-    int  get totalLines  => lines.length;
-    bool get hasAudio    => audioPath != null;
-    bool get hasLyrics   => lines.isNotEmpty;
-    bool get canExport   => hasAudio && hasLyrics && taggedCount > 0;
+  int get taggedCount => lines.where((l) => l.isTagged).length;
+  int get totalLines => lines.length;
+  bool get hasAudio => audioPath != null;
+  bool get hasLyrics => lines.isNotEmpty;
+  bool get canExport => hasAudio && hasLyrics && taggedCount > 0;
 
-    String formatDuration(Duration d) {
-      final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-      final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-      return '$m:$s';
-    }
+  String formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
 
-    @override
-    void dispose() {
-      WidgetsBinding.instance.removeObserver(this);
-      _player.dispose();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _player.dispose();
+    super.dispose();
+  }
 }
