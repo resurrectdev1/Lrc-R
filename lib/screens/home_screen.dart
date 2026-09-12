@@ -474,7 +474,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               const SizedBox(height: 20),
               _ExportOptionTile(
                 icon: Icons.copy_rounded,
-                color: LrcTheme.accentBlue,
+                color: theme.accentBlue,
                 label: 'Copy to Clipboard',
                 sublabel: 'Paste it anywhere as plain text',
                 theme: theme,
@@ -486,7 +486,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               const SizedBox(height: 10),
               _ExportOptionTile(
                 icon: Icons.ios_share_rounded,
-                color: LrcTheme.accentTeal,
+                color: theme.accentTeal,
                 label: 'Share',
                 sublabel: 'Send the .lrc file to another app',
                 theme: theme,
@@ -755,8 +755,8 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               colors: [
                 theme.primary,
                 LrcTheme.accentGreen,
-                LrcTheme.accentPurple,
-                LrcTheme.accentTeal,
+                theme.accentPurple,
+                theme.accentTeal,
                 Colors.white,
               ],
             ),
@@ -1023,7 +1023,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     if (session.lines.isEmpty) {
       return EmptyState(
         icon: Icons.lyrics_rounded,
-        color: LrcTheme.accentTeal,
+        color: theme.accentTeal,
         title: 'No lyrics yet',
         body: 'Paste or load a lyrics file to get started.',
         theme: theme,
@@ -1256,7 +1256,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               const SizedBox(width: 10),
               _ActionIconButton(
                 icon: Icons.undo_rounded,
-                color: LrcTheme.accentPurple,
+                color: theme.accentPurple,
                 tooltip: 'Undo',
                 theme: theme,
                 enabled: session.canUndo,
@@ -1268,7 +1268,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               const SizedBox(width: 8),
               _ActionIconButton(
                 icon: Icons.ios_share_rounded,
-                color: LrcTheme.accentBlue,
+                color: theme.accentBlue,
                 tooltip: 'Copy or Share',
                 theme: theme,
                 enabled: session.canExport,
@@ -1277,7 +1277,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               const SizedBox(width: 8),
               _ActionIconButton(
                 icon: Icons.download_rounded,
-                color: LrcTheme.accentTeal,
+                color: theme.accentTeal,
                 tooltip: 'Save LRC',
                 theme: theme,
                 enabled: session.canExport,
@@ -1389,7 +1389,7 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
           content: const Text(
             'Detected embedded metadata — using it automatically',
           ),
-          backgroundColor: LrcTheme.accentTeal,
+          backgroundColor: widget.theme.accentTeal,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           shape: RoundedRectangleBorder(
