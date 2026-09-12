@@ -18,10 +18,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Audio not loading in web demo
+- Change encoder to use UTF-8 to avoid corrupting certain charecters 
 
 ### Changed
 
-* Gradle bump to 9.5.1
+- Gradle bump to 9.5.1
 
 ---
 
