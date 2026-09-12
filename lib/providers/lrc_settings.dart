@@ -4,40 +4,41 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/lrc_theme.dart';
 
 class LrcSettings extends ChangeNotifier {
-  LrcThemeMode _themeMode      = LrcThemeMode.darkSlate;
+  LrcThemeMode _themeMode = LrcThemeMode.darkSlate;
   ColorScheme? _dynamicScheme;
 
-  bool _keepScreenOn         = false;
-  int  _timestampOffsetMs    = 0;
-  bool _minimalMetadata      = false;
+  bool _keepScreenOn = false;
+  int _timestampOffsetMs = 0;
+  bool _minimalMetadata = false;
 
-  bool get keepScreenOn      => _keepScreenOn;
-  int  get timestampOffsetMs => _timestampOffsetMs;
-  bool get minimalMetadata   => _minimalMetadata;
+  bool get keepScreenOn => _keepScreenOn;
+  int get timestampOffsetMs => _timestampOffsetMs;
+  bool get minimalMetadata => _minimalMetadata;
 
   LrcThemeMode get themeMode => _themeMode;
-  LrcTheme     get theme     => LrcTheme(mode: _themeMode, dynamicScheme: _dynamicScheme);
+  LrcTheme get theme =>
+      LrcTheme(mode: _themeMode, dynamicScheme: _dynamicScheme);
 
   Future<void> init(ColorScheme? dynamicLight, ColorScheme? dynamicDark) async {
-    final prefs      = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     final savedTheme = prefs.getInt('lrc_theme_mode') ?? 0;
     if (savedTheme < LrcThemeMode.values.length) {
       _themeMode = LrcThemeMode.values[savedTheme];
     }
-    _keepScreenOn      = prefs.getBool('lrc_keep_screen_on') ?? false;
+    _keepScreenOn = prefs.getBool('lrc_keep_screen_on') ?? false;
     _timestampOffsetMs = prefs.getInt('lrc_timestamp_offset') ?? 0;
-    _minimalMetadata   = prefs.getBool('lrc_minimal_metadata') ?? false;
-    _dynamicScheme     = dynamicDark;
+    _minimalMetadata = prefs.getBool('lrc_minimal_metadata') ?? false;
+    _dynamicScheme = dynamicDark;
     notifyListeners();
   }
 
   void applyDynamicColorsIfChanged(ColorScheme? light, ColorScheme? dark) {
     final next = dark ?? light;
     if (next?.primary == _dynamicScheme?.primary &&
-      next?.surface == _dynamicScheme?.surface) {
+        next?.surface == _dynamicScheme?.surface) {
       return;
-      }
-      _dynamicScheme = next;
+    }
+    _dynamicScheme = next;
     WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
