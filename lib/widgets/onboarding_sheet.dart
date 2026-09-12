@@ -23,10 +23,10 @@ class LrcOnboardingSheet extends StatefulWidget {
 class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
   int _page = 0;
 
-  static const _steps = [
+  List<_OnboardStep> _steps(LrcTheme theme) => [
     _OnboardStep(
       icon: Icons.lyrics_rounded,
-      iconColor: LrcTheme.accentBlue,
+      iconColor: theme.accentBlue,
       title: 'Welcome to Lrc-R 🎧',
       body:
           'A free, open-source synced-lyrics editor. '
@@ -36,7 +36,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
     ),
     _OnboardStep(
       icon: Icons.audiotrack_rounded,
-      iconColor: LrcTheme.accentPurple,
+      iconColor: theme.accentPurple,
       title: 'Load Your Audio',
       body:
           'Pick any MP3, FLAC, M4A, WAV or OGG file from your device. '
@@ -46,7 +46,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
     ),
     _OnboardStep(
       icon: Icons.text_snippet_rounded,
-      iconColor: LrcTheme.accentTeal,
+      iconColor: theme.accentTeal,
       title: 'Add Your Lyrics',
       body:
           'Paste plain-text lyrics, open an existing .lrc or .txt file, '
@@ -67,7 +67,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
     ),
     _OnboardStep(
       icon: Icons.download_rounded,
-      iconColor: LrcTheme.accentBlue,
+      iconColor: theme.accentBlue,
       title: 'Export & Share',
       body:
           'Once all lines are tagged, copy the LRC to your clipboard '
@@ -95,8 +95,9 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
   Widget build(BuildContext context) {
     final theme = context.watch<LrcSettings>().theme;
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final step = _steps[_page];
-    final isLast = _page == _steps.length - 1;
+    final steps = _steps(theme);
+    final step = steps[_page];
+    final isLast = _page == steps.length - 1;
     final isFirst = _page == 0;
 
     return Container(
@@ -164,7 +165,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              _steps.length,
+              steps.length,
               (i) => AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -207,7 +208,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
                   onPressed: _advance,
                   style: FilledButton.styleFrom(
                     backgroundColor: isLast
-                        ? LrcTheme.accentBlue
+                        ? theme.accentBlue
                         : theme.primary,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
