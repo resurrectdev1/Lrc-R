@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Material you used in all aspects of the app
+- Material you is now used in all aspects of the app
 
 ### Fixed
 
