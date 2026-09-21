@@ -17,6 +17,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Missing v0.3.0 changelog in CHANGELOG.md
+- Kisweb heap buffer bug crashing when loading big audio files
 
 ---
 
