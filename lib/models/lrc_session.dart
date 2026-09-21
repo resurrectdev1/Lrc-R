@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -162,39 +161,6 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<void> loadAudioBytes(Uint8List bytes, String name) async {
-    audioPath = null;
-    audioName = name;
-    await _player.setReleaseMode(ReleaseMode.stop);
-    await _player.setSource(BytesSource(bytes, mimeType: _mimeTypeFor(name)));
-    await _player.setPlaybackRate(playbackSpeed);
-    notifyListeners();
-  }
-
-  String _mimeTypeFor(String fileName) {
-    final ext = fileName.toLowerCase().split('.').last;
-    switch (ext) {
-      case 'flac':
-        return 'audio/flac';
-      case 'mp3':
-        return 'audio/mpeg';
-      case 'wav':
-        return 'audio/wav';
-      case 'ogg':
-        return 'audio/ogg';
-      case 'm4a':
-        return 'audio/mp4';
-      case 'aac':
-        return 'audio/aac';
-      case 'opus':
-        return 'audio/opus';
-      case 'weba':
-      case 'webm':
-        return 'audio/webm';
-      default:
-        return 'audio/mpeg';
-    }
-  }
 
   Future<void> unloadAudio() async {
     await _player.stop();
