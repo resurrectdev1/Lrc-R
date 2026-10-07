@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/lrc_settings.dart';
 import '../theme/lrc_theme.dart';
+import 'accent_picker_sheet.dart';
 
 class LrcSettingsSheet extends StatefulWidget {
   const LrcSettingsSheet({super.key});
@@ -64,10 +65,10 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                 child: Column(
                   children: LrcThemeMode.values.map((mode) {
                     const labels = {
-                  LrcThemeMode.darkSlate: 'Dark Blue',
-                  LrcThemeMode.amoledBlack: 'AMOLED Black',
-                  LrcThemeMode.materialYou: 'Material You',
-                  LrcThemeMode.whiteMinimal: 'White Minimal',
+                      LrcThemeMode.darkSlate: 'Dark Blue',
+                      LrcThemeMode.amoledBlack: 'AMOLED Black',
+                      LrcThemeMode.materialYou: 'Material You',
+                      LrcThemeMode.whiteMinimal: 'White Minimal',
                     };
                     return RadioListTile<LrcThemeMode>(
                       value: mode,
@@ -86,6 +87,9 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                   }).toList(),
                 ),
               ),
+
+              const SizedBox(height: 8),
+              _AccentRow(settings: liveSettings),
 
               const SizedBox(height: 20),
               _SectionLabel('SESSION', theme),
@@ -205,9 +209,7 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                         activeTrackColor: theme.accentTeal,
                         inactiveTrackColor: theme.surfaceHigh,
                         thumbColor: theme.accentTeal,
-                        overlayColor: theme.accentTeal.withValues(
-                          alpha: 0.15,
-                        ),
+                        overlayColor: theme.accentTeal.withValues(alpha: 0.15),
                       ),
                       child: Slider(
                         value: liveSettings.timestampOffsetMs.toDouble(),
@@ -348,6 +350,88 @@ class _SettingsToggle extends StatelessWidget {
             activeTrackColor: theme.primary.withValues(alpha: 0.3),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AccentRow extends StatelessWidget {
+  const _AccentRow({required this.settings});
+  final LrcSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = settings.theme;
+    final usesSystemColors = settings.themeMode == LrcThemeMode.materialYou;
+    final custom = settings.customAccent;
+
+    final subtitle = usesSystemColors
+        ? 'Not available with Material You'
+        : custom != null
+        ? '#${colorToHex(custom)}'
+        : 'Default';
+
+    return Opacity(
+      opacity: usesSystemColors ? 0.5 : 1,
+      child: GestureDetector(
+        onTap: usesSystemColors
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                showAccentPickerSheet(context);
+              },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: theme.textMuted.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: theme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.textMuted.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primary.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Custom Accent',
+                      style: TextStyle(fontSize: 14, color: theme.textPrimary),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 11, color: theme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.textMuted,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
