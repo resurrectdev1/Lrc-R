@@ -10,14 +10,19 @@ class LrcSettings extends ChangeNotifier {
   bool _keepScreenOn = false;
   int _timestampOffsetMs = 0;
   bool _minimalMetadata = false;
+  Color? _customAccent;
 
   bool get keepScreenOn => _keepScreenOn;
   int get timestampOffsetMs => _timestampOffsetMs;
   bool get minimalMetadata => _minimalMetadata;
 
   LrcThemeMode get themeMode => _themeMode;
-  LrcTheme get theme =>
-      LrcTheme(mode: _themeMode, dynamicScheme: _dynamicScheme);
+  Color? get customAccent => _customAccent;
+  LrcTheme get theme => LrcTheme(
+    mode: _themeMode,
+    dynamicScheme: _dynamicScheme,
+    customAccent: _customAccent,
+  );
 
   Future<void> init(ColorScheme? dynamicLight, ColorScheme? dynamicDark) async {
     final prefs = await SharedPreferences.getInstance();
@@ -28,6 +33,8 @@ class LrcSettings extends ChangeNotifier {
     _keepScreenOn = prefs.getBool('lrc_keep_screen_on') ?? false;
     _timestampOffsetMs = prefs.getInt('lrc_timestamp_offset') ?? 0;
     _minimalMetadata = prefs.getBool('lrc_minimal_metadata') ?? false;
+    final accentInt = prefs.getInt('lrc_custom_accent');
+    if (accentInt != null) _customAccent = Color(accentInt);
     _dynamicScheme = dynamicDark;
     notifyListeners();
   }
@@ -67,6 +74,17 @@ class LrcSettings extends ChangeNotifier {
     _minimalMetadata = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('lrc_minimal_metadata', value);
+    notifyListeners();
+  }
+
+  Future<void> setCustomAccent(Color? color) async {
+    _customAccent = color;
+    final prefs = await SharedPreferences.getInstance();
+    if (color == null) {
+      await prefs.remove('lrc_custom_accent');
+    } else {
+      await prefs.setInt('lrc_custom_accent', color.toARGB32());
+    }
     notifyListeners();
   }
 }
