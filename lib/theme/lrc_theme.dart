@@ -5,7 +5,8 @@ enum LrcThemeMode { darkSlate, amoledBlack, materialYou, whiteMinimal }
 class LrcTheme {
   final LrcThemeMode mode;
   final ColorScheme? dynamicScheme;
-  const LrcTheme({required this.mode, this.dynamicScheme});
+  final Color? customAccent;
+  const LrcTheme({required this.mode, this.dynamicScheme, this.customAccent});
 
   Color get bg {
     switch (mode) {
@@ -60,6 +61,14 @@ class LrcTheme {
   }
 
   Color get primary {
+    if (_useCustomAccent) return customAccent!;
+    return defaultPrimary;
+  }
+
+  bool get _useCustomAccent =>
+      customAccent != null && mode != LrcThemeMode.materialYou;
+
+  Color get defaultPrimary {
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF2261A1);
@@ -121,6 +130,7 @@ class LrcTheme {
   }
 
   Color get accentBlue {
+    if (_useCustomAccent) return customAccent!;
     if (mode == LrcThemeMode.materialYou) {
       return dynamicScheme?.primary ?? _accentBlueDefault;
     }
@@ -148,4 +158,21 @@ class LrcTheme {
   static const accentBlueLight = Color(0xFF4D8FCC);
   static const accentGreen = Color(0xFF4CAF82);
   static const errorRed = Color(0xFFCF6679);
+
+  static const List<Color> accentPresets = [
+    Color(0xFF2261A1),
+    Color(0xFF4D8FCC),
+    Color(0xFF42A5C8),
+    Color(0xFF3EC9C9),
+    Color(0xFF4E8B7A),
+    Color(0xFF4CAF82),
+    Color(0xFF7A9E3B),
+    Color(0xFFFFBF00),
+    Color(0xFFC46A4A),
+    Color(0xFFE5624D),
+    Color(0xFFE0529C),
+    Color(0xFF9E3B6B),
+    Color(0xFF7B68EE),
+    Color(0xFF6B7A7D),
+  ];
 }
