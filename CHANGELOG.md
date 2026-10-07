@@ -4,6 +4,11 @@ All notable changes to Lrc-R are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### Changed
+
+* Theme picker to use RadioGroup
+* Custom hex accent picker
+
 ---
 
 ## [Unreleased]
@@ -12,12 +17,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Material you is now used in all aspects of the app
+* Material you is now used in all aspects of the app
 
 ### Fixed
 
-- Missing v0.3.0 changelog in CHANGELOG.md
-- Kisweb heap buffer bug crashing when loading big audio files
+* Missing v0.3.0 changelog in CHANGELOG.md
+* Kisweb heap buffer bug crashing when loading big audio files
 
 ---
 
@@ -25,19 +30,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added Banner in Github social preview, website, & releases
-- Add analysis job to apk build workflow
+* Added Banner in Github social preview, website, & releases
+* Add analysis job to apk build workflow
 
 ### Fixed
 
-- Audio not loading in web demo
-- Change encoder to use UTF-8 to avoid corrupting certain charecters 
+* Audio not loading in web demo
+* Change encoder to use UTF-8 to avoid corrupting certain charecters 
 
 ### Changed
 
-- Gradle bump to 9.5.1
-- Formatted all code via dart format for a cleaner codebase
-- Updated dart packages
+* Gradle bump to 9.5.1
+* Formatted all code via dart format for a cleaner codebase
+* Updated dart packages
 
 ---
 
@@ -45,14 +50,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed undo button clearing the tagged line instead of restoring said line
-- Audio playing even after closing app
+* Fixed undo button clearing the tagged line instead of restoring said line
+* Audio playing even after closing app
 
 ### Changed
 
-- Rearranged metadata export to be ar, al, ti, by & then length
-- Allow changing [by] metadata
-- Flutter dependency upgrade
+* Rearranged metadata export to be ar, al, ti, by & then length
+* Allow changing [by] metadata
+* Flutter dependency upgrade
 
 ---
 
@@ -60,17 +65,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Editable [ti], [ar] & [al] metadata fields
-- Option to add [ti], [ar] & [al] fields when entering lyrics, with backwards parsing if those fields already exist in the current .lrc or .txt metadata
-- Auto [length] metadata field detected from the current song length
+* Editable [ti], [ar] & [al] metadata fields
+* Option to add [ti], [ar] & [al] fields when entering lyrics, with backwards parsing if those fields already exist in the current .lrc or .txt metadata
+* Auto [length] metadata field detected from the current song length
 
 ### Fixed
 
-- Audio player hanging and getting stuck after a song finishes
+* Audio player hanging and getting stuck after a song finishes
 
 ### Changed
 
-- General optimizations and bug fixes
+* General optimizations and bug fixes
 
 ---
 
@@ -78,21 +83,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Initial release
-- Tap a timestamp in the lyrics view to seek to that position during playback
-- Confetti animation plays after all lines have been tagged
-- Multi-language lyric tag support
-- Improved parse system and import feature for .lrc files
+* Initial release
+* Tap a timestamp in the lyrics view to seek to that position during playback
+* Confetti animation plays after all lines have been tagged
+* Multi-language lyric tag support
+* Improved parse system and import feature for .lrc files
 
 ### Changed
 
-- Switched audio backend to the `audioplayers` package
-- Added dependency override to work around [dart-lang/native#3263](https://github.com/dart-lang/native/issues/3263)
-- Upgraded Flutter dependencies
+* Switched audio backend to the `audioplayers` package
+* Added dependency override to work around [dart-lang/native#3263](https://github.com/dart-lang/native/issues/3263)
+* Upgraded Flutter dependencies
 
 ### Removed
 
-- Dead/unused widgets cleaned up
+* Dead/unused widgets cleaned up
 
 ---
 
