@@ -54,80 +54,38 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
               const SizedBox(height: 24),
               _SectionLabel('THEME', theme),
               const SizedBox(height: 10),
-              ...LrcThemeMode.values.map((mode) {
-                final labels = {
-                  LrcThemeMode.darkSlate: ('Dark Blue', 'Default dark theme'),
-                  LrcThemeMode.amoledBlack: (
-                    'AMOLED Black',
-                    'Pure black for OLED screens',
-                  ),
-                  LrcThemeMode.materialYou: (
-                    'Material You',
-                    'Follows your wallpaper colours',
-                  ),
-                  LrcThemeMode.whiteMinimal: (
-                    'White Minimal',
-                    'Clean light theme',
-                  ),
-                };
-                final (label, sub) = labels[mode]!;
-                final isActive = liveSettings.themeMode == mode;
-                return GestureDetector(
-                  onTap: () => liveSettings.setThemeMode(mode),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? theme.primary.withValues(alpha: 0.1)
-                          : theme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isActive
-                            ? theme.primary.withValues(alpha: 0.5)
-                            : theme.textMuted.withValues(alpha: 0.2),
+              RadioGroup<LrcThemeMode>(
+                groupValue: liveSettings.themeMode,
+                onChanged: (mode) {
+                  if (mode == null) return;
+                  HapticFeedback.selectionClick();
+                  liveSettings.setThemeMode(mode);
+                },
+                child: Column(
+                  children: LrcThemeMode.values.map((mode) {
+                    const labels = {
+                  LrcThemeMode.darkSlate: 'Dark Blue',
+                  LrcThemeMode.amoledBlack: 'AMOLED Black',
+                  LrcThemeMode.materialYou: 'Material You',
+                  LrcThemeMode.whiteMinimal: 'White Minimal',
+                    };
+                    return RadioListTile<LrcThemeMode>(
+                      value: mode,
+                      activeColor: theme.primary,
+                      fillColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? theme.primary
+                            : theme.textMuted,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isActive
-                                      ? theme.primary
-                                      : theme.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                sub,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: theme.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isActive)
-                          Icon(
-                            Icons.check_circle_rounded,
-                            color: theme.primary,
-                            size: 18,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        labels[mode]!,
+                        style: TextStyle(color: theme.textPrimary),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
 
               const SizedBox(height: 20),
               _SectionLabel('SESSION', theme),
