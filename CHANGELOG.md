@@ -10,6 +10,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+### Added
+
+* Animations across the app, e.g. lyric lines fade in one after another when lyrics load, the audio and lyrics setup steps reveal as they appear, and buttons, lyric lines and player controls give subtle press feedback
+* Play/pause icon now animates when playback changes, and the tagging progress bar fills smoothly
+* Dialogs scale in
+* Shared motion settings in `lib/theme/motion.dart` so all animations use the same timing and easing
+
 ### Changed
 
 * Material you is now used in all aspects of the app
@@ -17,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Theme picker to use RadioGroup
 * Custom hex accent picker
 * Improved app icon (Made a proper gradient using digital tools instead of a hacky airbrush implementation of a gradient)
+* All animation durations and curves now use the shared motion settings, so sheets, dialogs and pickers feel consistent
 * Web app icons also updated (to be done)
 
 ### Fixed
