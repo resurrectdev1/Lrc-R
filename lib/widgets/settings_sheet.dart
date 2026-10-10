@@ -67,7 +67,6 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                     const labels = {
                       LrcThemeMode.darkSlate: 'Dark Blue',
                       LrcThemeMode.amoledBlack: 'AMOLED Black',
-                      LrcThemeMode.materialYou: 'Material You',
                       LrcThemeMode.whiteMinimal: 'White Minimal',
                     };
                     return RadioListTile<LrcThemeMode>(
@@ -88,6 +87,20 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                 ),
               ),
 
+              if (liveSettings.hasDynamicColors || liveSettings.materialYou) ...[
+                const SizedBox(height: 8),
+                _SettingsToggle(
+                  icon: Icons.palette_rounded,
+                  label: 'Material You',
+                  sublabel: 'Use your wallpaper colors',
+                  value: liveSettings.materialYou,
+                  theme: theme,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    liveSettings.setMaterialYou(v);
+                  },
+                ),
+              ],
               const SizedBox(height: 8),
               _AccentRow(settings: liveSettings),
 
@@ -362,7 +375,7 @@ class _AccentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = settings.theme;
-    final usesSystemColors = settings.themeMode == LrcThemeMode.materialYou;
+    final usesSystemColors = settings.materialYou;
     final custom = settings.customAccent;
 
     final subtitle = usesSystemColors
