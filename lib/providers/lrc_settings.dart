@@ -5,7 +5,9 @@ import '../theme/lrc_theme.dart';
 
 class LrcSettings extends ChangeNotifier {
   LrcThemeMode _themeMode = LrcThemeMode.darkSlate;
-  ColorScheme? _dynamicScheme;
+  bool _materialYou = false;
+  ColorScheme? _dynamicLight;
+  ColorScheme? _dynamicDark;
 
   bool _keepScreenOn = false;
   int _timestampOffsetMs = 0;
@@ -17,42 +19,73 @@ class LrcSettings extends ChangeNotifier {
   bool get minimalMetadata => _minimalMetadata;
 
   LrcThemeMode get themeMode => _themeMode;
+  bool get materialYou => _materialYou;
+  bool get hasDynamicColors => _dynamicLight != null || _dynamicDark != null;
   Color? get customAccent => _customAccent;
   LrcTheme get theme => LrcTheme(
     mode: _themeMode,
-    dynamicScheme: _dynamicScheme,
+    materialYou: _materialYou,
+    dynamicLight: _dynamicLight,
+    dynamicDark: _dynamicDark,
     customAccent: _customAccent,
   );
 
   Future<void> init(ColorScheme? dynamicLight, ColorScheme? dynamicDark) async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTheme = prefs.getInt('lrc_theme_mode') ?? 0;
-    if (savedTheme < LrcThemeMode.values.length) {
-      _themeMode = LrcThemeMode.values[savedTheme];
+    final savedBase = prefs.getInt('lrc_theme_base');
+    if (savedBase != null) {
+      if (savedBase >= 0 && savedBase < LrcThemeMode.values.length) {
+        _themeMode = LrcThemeMode.values[savedBase];
+      }
+      _materialYou = prefs.getBool('lrc_material_you') ?? false;
+    } else {
+      switch (prefs.getInt('lrc_theme_mode') ?? 0) {
+        case 1:
+          _themeMode = LrcThemeMode.amoledBlack;
+        case 2:
+          _themeMode = LrcThemeMode.darkSlate;
+          _materialYou = true;
+        case 3:
+          _themeMode = LrcThemeMode.whiteMinimal;
+        default:
+          _themeMode = LrcThemeMode.darkSlate;
+      }
     }
     _keepScreenOn = prefs.getBool('lrc_keep_screen_on') ?? false;
     _timestampOffsetMs = prefs.getInt('lrc_timestamp_offset') ?? 0;
     _minimalMetadata = prefs.getBool('lrc_minimal_metadata') ?? false;
     final accentInt = prefs.getInt('lrc_custom_accent');
     if (accentInt != null) _customAccent = Color(accentInt);
-    _dynamicScheme = dynamicDark;
+    _dynamicLight = dynamicLight;
+    _dynamicDark = dynamicDark;
     notifyListeners();
   }
 
   void applyDynamicColorsIfChanged(ColorScheme? light, ColorScheme? dark) {
-    final next = dark ?? light;
-    if (next?.primary == _dynamicScheme?.primary &&
-        next?.surface == _dynamicScheme?.surface) {
+    if (light?.primary == _dynamicLight?.primary &&
+        light?.surface == _dynamicLight?.surface &&
+        dark?.primary == _dynamicDark?.primary &&
+        dark?.surface == _dynamicDark?.surface) {
       return;
     }
-    _dynamicScheme = next;
+    _dynamicLight = light;
+    _dynamicDark = dark;
     WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
   Future<void> setThemeMode(LrcThemeMode mode) async {
     _themeMode = mode;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('lrc_theme_mode', mode.index);
+    await prefs.setInt('lrc_theme_base', mode.index);
+    await prefs.setBool('lrc_material_you', _materialYou);
+    notifyListeners();
+  }
+
+  Future<void> setMaterialYou(bool value) async {
+    _materialYou = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lrc_material_you', value);
+    await prefs.setInt('lrc_theme_base', _themeMode.index);
     notifyListeners();
   }
 
