@@ -4,13 +4,6 @@ All notable changes to Lrc-R are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### Changed
-
-* Theme picker to use RadioGroup
-* Custom hex accent picker
-* Improved app icon (Made a proper gradient using digital tools instead of a hacky airbrush implementation of a gradient)
-* Web app icons also updated (to be done)
-
 ---
 
 ## [Unreleased]
@@ -20,11 +13,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 * Material you is now used in all aspects of the app
+* Material you into a toggle so it can be used alongside other themes
+* Theme picker to use RadioGroup
+* Custom hex accent picker
+* Improved app icon (Made a proper gradient using digital tools instead of a hacky airbrush implementation of a gradient)
+* Web app icons also updated (to be done)
 
 ### Fixed
 
 * Missing v0.3.0 changelog in CHANGELOG.md
-* Kisweb heap buffer bug crashing when loading big audio files
 
 ---
 
