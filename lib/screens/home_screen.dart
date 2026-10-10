@@ -120,35 +120,43 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     final hasDraft = await session.hasDraft();
     if (!hasDraft || !mounted) return;
 
-    final theme = context.read<LrcSettings>().theme;
     showLrcDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Restore session?',
-          style: TextStyle(
-            color: theme.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Text(
-          'A draft from your last session was found. '
-          'Would you like to restore it?\n\n'
-          'Note: you will need to re-load the audio file.',
-          style: TextStyle(color: theme.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Discard', style: TextStyle(color: theme.textMuted)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: theme.primary),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Restore'),
-          ),
-        ],
+      builder: (ctx) => Consumer<LrcSettings>(
+        builder: (ctx, settings, _) {
+          final theme = settings.theme;
+          return AlertDialog(
+            backgroundColor: theme.surfaceHigh,
+            title: Text(
+              'Restore session?',
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            content: Text(
+              'A draft from your last session was found. '
+              'Would you like to restore it?\n\n'
+              'Note: you will need to re-load the audio file.',
+              style: TextStyle(color: theme.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Discard', style: TextStyle(color: theme.textMuted)),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.primary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Restore'),
+              ),
+            ],
+          );
+        },
       ),
     ).then((restore) async {
       if (restore == true) {
