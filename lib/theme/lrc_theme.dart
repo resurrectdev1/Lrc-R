@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 
-enum LrcThemeMode { darkSlate, amoledBlack, materialYou, whiteMinimal }
+enum LrcThemeMode { darkSlate, amoledBlack, whiteMinimal }
 
 class LrcTheme {
   final LrcThemeMode mode;
-  final ColorScheme? dynamicScheme;
+
+  final bool materialYou;
+  final ColorScheme? dynamicLight;
+  final ColorScheme? dynamicDark;
   final Color? customAccent;
-  const LrcTheme({required this.mode, this.dynamicScheme, this.customAccent});
+  const LrcTheme({
+    required this.mode,
+    this.materialYou = false,
+    this.dynamicLight,
+    this.dynamicDark,
+    this.customAccent,
+  });
+
+  ColorScheme? get _dyn {
+    if (!materialYou) return null;
+    return brightness == Brightness.light ? dynamicLight : dynamicDark;
+  }
+
+  bool get _dynSurfaces => _dyn != null && mode != LrcThemeMode.amoledBlack;
 
   Color get bg {
+    if (_dynSurfaces) return _dyn!.surface;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF080E18);
@@ -16,12 +33,11 @@ class LrcTheme {
         return const Color(0xFF000000);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFFF5F5F5);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.surface ?? const Color(0xFF080E18);
     }
   }
 
   Color get surface {
+    if (_dynSurfaces) return _dyn!.surfaceContainerLow;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF0D1623);
@@ -29,12 +45,11 @@ class LrcTheme {
         return const Color(0xFF0A0A0A);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFFFFFFFF);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.surfaceContainerLow ?? const Color(0xFF0D1623);
     }
   }
 
   Color get surfaceHigh {
+    if (_dynSurfaces) return _dyn!.surfaceContainerHigh;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF122035);
@@ -42,12 +57,11 @@ class LrcTheme {
         return const Color(0xFF121212);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFFE8E8E8);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.surfaceContainerHigh ?? const Color(0xFF122035);
     }
   }
 
   Color get cardBg {
+    if (_dynSurfaces) return _dyn!.surfaceContainer;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF0F1C30);
@@ -55,18 +69,14 @@ class LrcTheme {
         return const Color(0xFF000000);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFFFAFAFA);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.surfaceContainer ?? const Color(0xFF0F1C30);
     }
   }
 
   Color get primary {
-    if (_useCustomAccent) return customAccent!;
+    if (_dyn != null) return _dyn!.primary;
+    if (customAccent != null) return customAccent!;
     return defaultPrimary;
   }
-
-  bool get _useCustomAccent =>
-      customAccent != null && mode != LrcThemeMode.materialYou;
 
   Color get defaultPrimary {
     switch (mode) {
@@ -76,12 +86,11 @@ class LrcTheme {
         return const Color(0xFF2261A1);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFF1D68A2);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.primary ?? const Color(0xFF2261A1);
     }
   }
 
   Color get textPrimary {
+    if (_dynSurfaces) return _dyn!.onSurface;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFFE4EDF8);
@@ -89,12 +98,11 @@ class LrcTheme {
         return const Color(0xFFFFFFFF);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFF1A1A1A);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.onSurface ?? const Color(0xFFE4EDF8);
     }
   }
 
   Color get textSecondary {
+    if (_dynSurfaces) return _dyn!.onSurfaceVariant;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF7A9CC4);
@@ -102,12 +110,11 @@ class LrcTheme {
         return const Color(0xFFAAAAAA);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFF666666);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.onSurfaceVariant ?? const Color(0xFF7A9CC4);
     }
   }
 
   Color get textMuted {
+    if (_dynSurfaces) return _dyn!.outline;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF2E4D6E);
@@ -115,8 +122,6 @@ class LrcTheme {
         return const Color(0xFF555555);
       case LrcThemeMode.whiteMinimal:
         return const Color(0xFF999999);
-      case LrcThemeMode.materialYou:
-        return dynamicScheme?.outline ?? const Color(0xFF2E4D6E);
     }
   }
 
@@ -130,26 +135,14 @@ class LrcTheme {
   }
 
   Color get accentBlue {
-    if (_useCustomAccent) return customAccent!;
-    if (mode == LrcThemeMode.materialYou) {
-      return dynamicScheme?.primary ?? _accentBlueDefault;
-    }
+    if (_dyn != null) return _dyn!.primary;
+    if (customAccent != null) return customAccent!;
     return _accentBlueDefault;
   }
 
-  Color get accentTeal {
-    if (mode == LrcThemeMode.materialYou) {
-      return dynamicScheme?.tertiary ?? _accentTealDefault;
-    }
-    return _accentTealDefault;
-  }
+  Color get accentTeal => _dyn?.tertiary ?? _accentTealDefault;
 
-  Color get accentPurple {
-    if (mode == LrcThemeMode.materialYou) {
-      return dynamicScheme?.secondary ?? _accentPurpleDefault;
-    }
-    return _accentPurpleDefault;
-  }
+  Color get accentPurple => _dyn?.secondary ?? _accentPurpleDefault;
 
   static const _accentBlueDefault = Color(0xFF2261A1);
   static const _accentTealDefault = Color(0xFF3EC9C9);
