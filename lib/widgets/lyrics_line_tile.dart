@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/lrc_session.dart';
 import '../theme/lrc_theme.dart';
+import '../theme/motion.dart';
+import 'press_scale.dart';
 
 class LyricsLineTile extends StatefulWidget {
   final LrcLine line;
@@ -113,194 +115,201 @@ class _LyricsLineTileState extends State<LyricsLineTile>
 
     if (_shakeError) borderColor = LrcTheme.errorRed;
 
-    Widget tile = GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ReorderableDragStartListener(
-                index: widget.index,
-                child: Icon(
-                  Icons.drag_handle_rounded,
-                  size: 18,
-                  color: theme.textMuted.withValues(alpha: 0.5),
+    Widget tile = PressScale(
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.standard,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ReorderableDragStartListener(
+                  index: widget.index,
+                  child: Icon(
+                    Icons.drag_handle_rounded,
+                    size: 18,
+                    color: theme.textMuted.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
-            ),
 
-            SizedBox(
-              width: 44,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isNext)
-                    Icon(
-                      Icons.arrow_right_rounded,
-                      color: theme.primary,
-                      size: 22,
-                    )
-                  else if (tagged)
-                    Icon(
-                      Icons.check_circle_rounded,
-                      color: theme.primary,
-                      size: 16,
-                    )
-                  else
-                    Text(
-                      '${widget.index + 1}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  if (tagged)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        _compactTs(widget.line.timestamp!),
+              SizedBox(
+                width: 44,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isNext)
+                      Icon(
+                        Icons.arrow_right_rounded,
+                        color: theme.primary,
+                        size: 22,
+                      )
+                    else if (tagged)
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: theme.primary,
+                        size: 16,
+                      )
+                    else
+                      Text(
+                        '${widget.index + 1}',
                         style: TextStyle(
-                          fontSize: 7.5,
-                          color: theme.primary,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
+                          fontSize: 11,
+                          color: theme.textMuted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-
-            Expanded(
-              child: _editing
-                  ? AnimatedBuilder(
-                      animation: _shakeAnim,
-                      builder: (ctx, child) => Transform.translate(
-                        offset: Offset(_shakeAnim.value, 0),
-                        child: child,
+                    if (tagged)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _compactTs(widget.line.timestamp!),
+                          style: TextStyle(
+                            fontSize: 7.5,
+                            color: theme.primary,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
                       ),
-                      child: TextField(
-                        controller: _ctrl,
-                        autofocus: true,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: _editing
+                    ? AnimatedBuilder(
+                        animation: _shakeAnim,
+                        builder: (ctx, child) => Transform.translate(
+                          offset: Offset(_shakeAnim.value, 0),
+                          child: child,
+                        ),
+                        child: TextField(
+                          controller: _ctrl,
+                          autofocus: true,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 6,
+                              horizontal: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: _shakeError
+                                    ? LrcTheme.errorRed
+                                    : theme.primary,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: _shakeError
+                                    ? LrcTheme.errorRed
+                                    : theme.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                            errorText: _shakeError
+                                ? 'Text cannot be empty'
+                                : null,
+                            errorStyle: const TextStyle(fontSize: 10),
+                          ),
+                          onSubmitted: (_) => _commitEdit(),
+                        ),
+                      )
+                    : Text(
+                        widget.line.text,
                         style: TextStyle(
                           fontSize: 14,
-                          color: theme.textPrimary,
+                          fontWeight: isNext
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          color: isNext
+                              ? theme.textPrimary
+                              : theme.textSecondary,
+                          height: 1.4,
                         ),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 6,
-                            horizontal: 8,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: _shakeError
-                                  ? LrcTheme.errorRed
-                                  : theme.primary,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: _shakeError
-                                  ? LrcTheme.errorRed
-                                  : theme.primary,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorText: _shakeError
-                              ? 'Text cannot be empty'
-                              : null,
-                          errorStyle: const TextStyle(fontSize: 10),
-                        ),
-                        onSubmitted: (_) => _commitEdit(),
                       ),
-                    )
-                  : Text(
-                      widget.line.text,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isNext ? FontWeight.w700 : FontWeight.w400,
-                        color: isNext ? theme.textPrimary : theme.textSecondary,
-                        height: 1.4,
-                      ),
+              ),
+
+              const SizedBox(width: 8),
+
+              if (_editing) ...[
+                GestureDetector(
+                  onTap: _commitEdit,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: theme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-            ),
-
-            const SizedBox(width: 8),
-
-            if (_editing) ...[
-              GestureDetector(
-                onTap: _commitEdit,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: theme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.check_rounded,
-                    color: theme.primary,
-                    size: 16,
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: theme.primary,
+                      size: 16,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => setState(() {
-                  _editing = false;
-                  _shakeError = false;
-                  _ctrl.text = widget.line.text;
-                }),
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: LrcTheme.errorRed.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: LrcTheme.errorRed,
-                    size: 16,
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _editing = false;
+                    _shakeError = false;
+                    _ctrl.text = widget.line.text;
+                  }),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: LrcTheme.errorRed.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: LrcTheme.errorRed,
+                      size: 16,
+                    ),
                   ),
                 ),
-              ),
-            ] else ...[
-              _MiniBtn(
-                icon: Icons.edit_rounded,
-                color: theme.textMuted,
-                onTap: () => setState(() => _editing = true),
-              ),
-              const SizedBox(width: 4),
-              if (tagged) ...[
+              ] else ...[
                 _MiniBtn(
-                  icon: Icons.timer_off_rounded,
-                  color: LrcTheme.errorRed,
-                  onTap: widget.onUntag,
+                  icon: Icons.edit_rounded,
+                  color: theme.textMuted,
+                  onTap: () => setState(() => _editing = true),
                 ),
                 const SizedBox(width: 4),
+                if (tagged) ...[
+                  _MiniBtn(
+                    icon: Icons.timer_off_rounded,
+                    color: LrcTheme.errorRed,
+                    onTap: widget.onUntag,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                _MiniBtn(
+                  icon: Icons.delete_outline_rounded,
+                  color: LrcTheme.errorRed.withValues(alpha: 0.7),
+                  onTap: widget.onDelete,
+                ),
               ],
-              _MiniBtn(
-                icon: Icons.delete_outline_rounded,
-                color: LrcTheme.errorRed.withValues(alpha: 0.7),
-                onTap: widget.onDelete,
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );
