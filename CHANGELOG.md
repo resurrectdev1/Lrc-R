@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Play/pause icon now animates when playback changes, and the tagging progress bar fills smoothly
 * Dialogs scale in
 * Shared motion settings in `lib/theme/motion.dart` so all animations use the same timing and easing
+* Monochrome icon suppourt
 
 ### Changed
 
