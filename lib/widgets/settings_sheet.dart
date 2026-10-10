@@ -87,20 +87,20 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                 ),
               ),
 
-              if (liveSettings.hasDynamicColors || liveSettings.materialYou) ...[
-                const SizedBox(height: 8),
-                _SettingsToggle(
-                  icon: Icons.palette_rounded,
-                  label: 'Material You',
-                  sublabel: 'Use your wallpaper colors',
+              if (liveSettings.hasDynamicColors || liveSettings.materialYou)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Material You',
+                    style: TextStyle(color: theme.textPrimary),
+                  ),
+                  activeThumbColor: theme.primary,
                   value: liveSettings.materialYou,
-                  theme: theme,
-                  onChanged: (v) {
+                  onChanged: (val) {
                     HapticFeedback.selectionClick();
-                    liveSettings.setMaterialYou(v);
+                    liveSettings.setMaterialYou(val);
                   },
                 ),
-              ],
               const SizedBox(height: 8),
               _AccentRow(settings: liveSettings),
 
