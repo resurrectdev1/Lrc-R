@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/lrc_session.dart';
 import '../theme/lrc_theme.dart';
+import '../theme/motion.dart';
+import 'press_scale.dart';
 
 class AudioPlayerBar extends StatelessWidget {
   final LrcSession session;
@@ -50,38 +52,40 @@ class AudioPlayerBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
-                onTap: onChangeSong,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.surfaceHigh,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.textMuted.withValues(alpha: 0.3),
+              PressScale(
+                child: GestureDetector(
+                  onTap: onChangeSong,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.swap_horiz_rounded,
-                        size: 12,
-                        color: theme.textSecondary,
+                    decoration: BoxDecoration(
+                      color: theme.surfaceHigh,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.textMuted.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Change',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.swap_horiz_rounded,
+                          size: 12,
                           color: theme.textSecondary,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Change',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -134,21 +138,33 @@ class AudioPlayerBar extends StatelessWidget {
                 onTap: session.skipBack5,
               ),
               const SizedBox(width: 10),
-              GestureDetector(
-                onTap: session.playPause,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: theme.primary,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(
-                    session.isPlaying
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 22,
+              PressScale(
+                child: GestureDetector(
+                  onTap: session.playPause,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: theme.primary,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: Motion.fast,
+                      switchInCurve: Motion.standard,
+                      switchOutCurve: Motion.exit,
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: ScaleTransition(scale: anim, child: child),
+                      ),
+                      child: Icon(
+                        session.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        key: ValueKey(session.isPlaying),
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -171,34 +187,37 @@ class AudioPlayerBar extends StatelessWidget {
                 final label = speed == 1.0 ? '1×' : '$speed×';
                 return Padding(
                   padding: const EdgeInsets.only(right: 5),
-                  child: GestureDetector(
-                    onTap: () {
-                      session.setSpeed(speed);
-                      HapticFeedback.selectionClick();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: active
-                            ? theme.primary.withValues(alpha: 0.18)
-                            : theme.surfaceHigh,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: active
-                              ? theme.primary.withValues(alpha: 0.6)
-                              : theme.textMuted.withValues(alpha: 0.2),
+                  child: PressScale(
+                    child: GestureDetector(
+                      onTap: () {
+                        session.setSpeed(speed);
+                        HapticFeedback.selectionClick();
+                      },
+                      child: AnimatedContainer(
+                        duration: Motion.fast,
+                        curve: Motion.standard,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                      ),
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: active ? theme.primary : theme.textMuted,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? theme.primary.withValues(alpha: 0.18)
+                              : theme.surfaceHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: active
+                                ? theme.primary.withValues(alpha: 0.6)
+                                : theme.textMuted.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: active ? theme.primary : theme.textMuted,
+                          ),
                         ),
                       ),
                     ),
@@ -227,16 +246,18 @@ class _CtrlBtn extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+  Widget build(BuildContext context) => PressScale(
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: size),
       ),
-      child: Icon(icon, color: color, size: size),
     ),
   );
 }
