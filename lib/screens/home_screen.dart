@@ -14,9 +14,13 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../models/lrc_session.dart';
 import '../providers/lrc_settings.dart';
 import '../theme/lrc_theme.dart';
+import '../theme/motion.dart';
+import '../theme/transitions.dart';
 import '../widgets/audio_player_bar.dart';
 import '../widgets/lyrics_line_tile.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/press_scale.dart';
+import '../widgets/reveal.dart';
 import '../widgets/settings_sheet.dart';
 import '../widgets/onboarding_sheet.dart';
 
@@ -33,6 +37,8 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
   bool _wasComplete = false;
   String _appVersion = '';
   final Map<int, GlobalKey> _tileKeys = {};
+  final EntranceTracker _entrance = EntranceTracker();
+  bool _entranceSeeded = false;
   int _lastLineCount = -1;
 
   @override
@@ -96,6 +102,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     if (!await shouldShowOnboarding()) return;
     if (!mounted) return;
     await showModalBottomSheet(
+      sheetAnimationStyle: Motion.sheet,
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -114,7 +121,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     if (!hasDraft || !mounted) return;
 
     final theme = context.read<LrcSettings>().theme;
-    showDialog<bool>(
+    showLrcDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -172,8 +179,8 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     if (key?.currentContext == null) return;
     Scrollable.ensureVisible(
       key!.currentContext!,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: Motion.base,
+      curve: Motion.standard,
       alignment: 0.5,
     );
   }
@@ -229,7 +236,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
   Future<bool> _confirmOverwrite(LrcSession session) async {
     if (session.taggedCount == 0) return true;
     if (!mounted) return false;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showLrcDialog<bool>(
       context: context,
       builder: (ctx) {
         final theme = ctx.read<LrcSettings>().theme;
@@ -290,7 +297,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
       row('Title', session.title),
     ].where((s) => s.isNotEmpty).join('\n');
 
-    final replace = await showDialog<bool>(
+    final replace = await showLrcDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
@@ -347,6 +354,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
 
   void _showPasteLyricsSheet(LrcSession session, LrcTheme theme) {
     showModalBottomSheet(
+      sheetAnimationStyle: Motion.sheet,
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -422,6 +430,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
 
   void _showExportOptionsSheet(LrcSession session, LrcTheme theme) {
     showModalBottomSheet(
+      sheetAnimationStyle: Motion.sheet,
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -544,6 +553,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
   void _showAboutSheet(BuildContext ctx, LrcTheme theme) {
     final navBar = MediaQuery.of(ctx).viewPadding.bottom;
     showModalBottomSheet(
+      sheetAnimationStyle: Motion.sheet,
       context: ctx,
       backgroundColor: theme.surfaceHigh,
       isScrollControlled: true,
@@ -659,6 +669,10 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     final settings = context.watch<LrcSettings>();
     final theme = settings.theme;
     final session = context.watch<LrcSession>();
+    if (!session.hasLyrics) {
+      _entrance.reset();
+      _entranceSeeded = false;
+    }
 
     return Scaffold(
       backgroundColor: theme.bg,
@@ -698,6 +712,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                 size: 20,
               ),
               onPressed: () => showModalBottomSheet(
+                sheetAnimationStyle: Motion.sheet,
                 context: context,
                 backgroundColor: Colors.transparent,
                 isScrollControlled: true,
@@ -759,74 +774,79 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
 
   Widget _buildSetupCards(LrcSession session, LrcTheme theme) {
     final accent = theme.primary;
-    Widget doneBanner = Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.check_rounded, color: accent, size: 17),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  session.audioName ?? 'Audio ready',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: theme.textPrimary,
-                  ),
-                ),
-                Text(
-                  'Step 1 complete',
-                  style: TextStyle(fontSize: 11, color: theme.textMuted),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _pickAudio(session),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    Widget doneBanner = Reveal(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accent.withValues(alpha: 0.3)),
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Icon(Icons.check_rounded, color: accent, size: 17),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.swap_horiz_rounded, size: 12, color: accent),
-                  const SizedBox(width: 4),
                   Text(
-                    'Change',
+                    session.audioName ?? 'Audio ready',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textPrimary,
                     ),
+                  ),
+                  Text(
+                    'Step 1 complete',
+                    style: TextStyle(fontSize: 11, color: theme.textMuted),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            GestureDetector(
+              onTap: () => _pickAudio(session),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accent.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.swap_horiz_rounded, size: 12, color: accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Change',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -837,57 +857,59 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
       required String formats,
       required Widget buttons,
     }) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withValues(alpha: 0.1),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: 0.2),
-                  blurRadius: 40,
-                  spreadRadius: 6,
-                ),
-              ],
+      return Reveal(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accent.withValues(alpha: 0.1),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.2),
+                    blurRadius: 40,
+                    spreadRadius: 6,
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: accent, size: 40),
             ),
-            child: Icon(icon, color: accent, size: 40),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: theme.textPrimary,
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: theme.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.textSecondary,
-              height: 1.5,
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.textSecondary,
+                height: 1.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            formats,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: accent.withValues(alpha: 0.6),
-              letterSpacing: 0.6,
+            const SizedBox(height: 6),
+            Text(
+              formats,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: accent.withValues(alpha: 0.6),
+                letterSpacing: 0.6,
+              ),
             ),
-          ),
-          const SizedBox(height: 36),
-          buttons,
-        ],
+            const SizedBox(height: 36),
+            buttons,
+          ],
+        ),
       );
     }
 
@@ -905,19 +927,24 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               buttons: SizedBox(
                 width: double.infinity,
                 height: 54,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                child: PressScale(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
+                    icon: const Icon(Icons.folder_open_rounded, size: 20),
+                    label: const Text(
+                      'Choose File',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onPressed: () => _pickAudio(session),
                   ),
-                  icon: const Icon(Icons.folder_open_rounded, size: 20),
-                  label: const Text(
-                    'Choose File',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                  onPressed: () => _pickAudio(session),
                 ),
               ),
             ),
@@ -946,26 +973,28 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                         flex: 3,
                         child: SizedBox(
                           height: 54,
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: accent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                          child: PressScale(
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: accent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                            ),
-                            icon: const Icon(
-                              Icons.content_paste_rounded,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Paste',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                              icon: const Icon(
+                                Icons.content_paste_rounded,
+                                size: 18,
                               ),
+                              label: const Text(
+                                'Paste',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              onPressed: () =>
+                                  _showPasteLyricsSheet(session, theme),
                             ),
-                            onPressed: () =>
-                                _showPasteLyricsSheet(session, theme),
                           ),
                         ),
                       ),
@@ -974,28 +1003,30 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                         flex: 2,
                         child: SizedBox(
                           height: 54,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: accent,
-                              side: BorderSide(
-                                color: accent.withValues(alpha: 0.5),
+                          child: PressScale(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: accent,
+                                side: BorderSide(
+                                  color: accent.withValues(alpha: 0.5),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                              icon: const Icon(
+                                Icons.folder_open_rounded,
+                                size: 18,
                               ),
-                            ),
-                            icon: const Icon(
-                              Icons.folder_open_rounded,
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'File',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                              label: const Text(
+                                'File',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
+                              onPressed: () => _pickLyrics(session),
                             ),
-                            onPressed: () => _pickLyrics(session),
                           ),
                         ),
                       ),
@@ -1025,105 +1056,109 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         children: [
-          GestureDetector(
-            onTap: () {
-              session.addLine(session.lines.length - 1);
-              HapticFeedback.lightImpact();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.textMuted.withValues(alpha: 0.2),
-                  strokeAlign: BorderSide.strokeAlignInside,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_rounded, size: 16, color: theme.textMuted),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Add line',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.textMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
+          PressScale(
+            child: GestureDetector(
+              onTap: () {
+                session.addLine(session.lines.length - 1);
+                HapticFeedback.lightImpact();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: theme.textMuted.withValues(alpha: 0.2),
+                    strokeAlign: BorderSide.strokeAlignInside,
                   ),
-                ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_rounded, size: 16, color: theme.textMuted),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Add line',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           const SizedBox(height: 6),
-          GestureDetector(
-            onTap: () => showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: Text(
-                  'Remove all lyrics?',
-                  style: TextStyle(
-                    color: theme.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                content: Text(
-                  'All lines and timestamps will be cleared.',
-                  style: TextStyle(color: theme.textSecondary),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: theme.textMuted),
-                    ),
-                  ),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: LrcTheme.errorRed,
-                    ),
-                    onPressed: () {
-                      if (session.isPlaying) session.playPause();
-                      session.clearLyrics();
-                      Navigator.pop(ctx);
-                      HapticFeedback.mediumImpact();
-                    },
-                    child: const Text('Remove'),
-                  ),
-                ],
-              ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: LrcTheme.errorRed.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: LrcTheme.errorRed.withValues(alpha: 0.2),
-                  strokeAlign: BorderSide.strokeAlignInside,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.delete_sweep_rounded,
-                    size: 16,
-                    color: LrcTheme.errorRed.withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Remove all lyrics',
+          PressScale(
+            child: GestureDetector(
+              onTap: () => showLrcDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(
+                    'Remove all lyrics?',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: LrcTheme.errorRed.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
+                  content: Text(
+                    'All lines and timestamps will be cleared.',
+                    style: TextStyle(color: theme.textSecondary),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: theme.textMuted),
+                      ),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: LrcTheme.errorRed,
+                      ),
+                      onPressed: () {
+                        if (session.isPlaying) session.playPause();
+                        session.clearLyrics();
+                        Navigator.pop(ctx);
+                        HapticFeedback.mediumImpact();
+                      },
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: LrcTheme.errorRed.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: LrcTheme.errorRed.withValues(alpha: 0.2),
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.delete_sweep_rounded,
+                      size: 16,
+                      color: LrcTheme.errorRed.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Remove all lyrics',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: LrcTheme.errorRed.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1133,6 +1168,12 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     );
 
     final minimalMetadata = context.watch<LrcSettings>().minimalMetadata;
+
+    if (!_entranceSeeded) {
+      final n = session.lines.length < 24 ? session.lines.length : 24;
+      _entrance.sync(Iterable<String>.generate(n, (i) => '$i'));
+      _entranceSeeded = true;
+    }
 
     return ReorderableListView.builder(
       scrollController: _lyricsScroll,
@@ -1154,20 +1195,24 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
       },
       itemBuilder: (ctx, i) {
         final line = session.lines[i];
-        return LyricsLineTile(
+        return StaggeredEntrance(
           key: _keyFor(i, session.lines.length),
-          line: line,
-          index: i,
-          isNext: i == session.tagIndex,
-          theme: theme,
-          session: session,
-          onTap: () {
-            session.setTagIndex(i);
-            if (line.isTagged) session.seek(line.timestamp!);
-          },
-          onUntag: () => session.untag(i),
-          onEdit: (txt) => session.editLine(i, txt),
-          onDelete: () => session.deleteLine(i),
+          tracker: _entrance,
+          id: '$i',
+          child: LyricsLineTile(
+            line: line,
+            index: i,
+            isNext: i == session.tagIndex,
+            theme: theme,
+            session: session,
+            onTap: () {
+              session.setTagIndex(i);
+              if (line.isTagged) session.seek(line.timestamp!);
+            },
+            onUntag: () => session.untag(i),
+            onEdit: (txt) => session.editLine(i, txt),
+            onDelete: () => session.deleteLine(i),
+          ),
         );
       },
     );
@@ -1190,11 +1235,16 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: theme.surfaceHigh,
-                    valueColor: AlwaysStoppedAnimation(theme.primary),
-                    minHeight: 4,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: progress),
+                    duration: Motion.base,
+                    curve: Motion.standard,
+                    builder: (_, v, _) => LinearProgressIndicator(
+                      value: v,
+                      backgroundColor: theme.surfaceHigh,
+                      valueColor: AlwaysStoppedAnimation(theme.primary),
+                      minHeight: 4,
+                    ),
                   ),
                 ),
               ),
@@ -1214,34 +1264,37 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
             children: [
               Expanded(
                 flex: 3,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: theme.primary,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                child: PressScale(
+                  enabled: session.tagIndex < session.totalLines,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: theme.primary,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                  ),
-                  icon: const Icon(Icons.timer_rounded, size: 20),
-                  label: Text(
-                    session.tagIndex < session.totalLines
-                        ? 'Tag  Line ${session.tagIndex + 1}'
-                        : 'All lines tagged ✓',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                    icon: const Icon(Icons.timer_rounded, size: 20),
+                    label: Text(
+                      session.tagIndex < session.totalLines
+                          ? 'Tag  Line ${session.tagIndex + 1}'
+                          : 'All lines tagged ✓',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
+                    onPressed: session.tagIndex < session.totalLines
+                        ? () {
+                            session.tagCurrentLine();
+                            _scrollToTagIndex(
+                              session.tagIndex,
+                              session.totalLines,
+                            );
+                            HapticFeedback.mediumImpact();
+                          }
+                        : null,
                   ),
-                  onPressed: session.tagIndex < session.totalLines
-                      ? () {
-                          session.tagCurrentLine();
-                          _scrollToTagIndex(
-                            session.tagIndex,
-                            session.totalLines,
-                          );
-                          HapticFeedback.mediumImpact();
-                        }
-                      : null,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1281,7 +1334,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                 tooltip: 'Reset all tags',
                 theme: theme,
                 enabled: session.taggedCount > 0,
-                onTap: () => showDialog(
+                onTap: () => showLrcDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: Text(
@@ -1429,9 +1482,9 @@ class _PasteLyricsSheetState extends State<_PasteLyricsSheet> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxH),
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
+        duration: Motion.slow,
+        switchInCurve: Motion.standard,
+        switchOutCurve: Motion.exit,
         transitionBuilder: (child, anim) => SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0.08, 0),
@@ -2123,22 +2176,26 @@ class _ActionIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
-    child: GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 44,
-        height: 52,
-        decoration: BoxDecoration(
-          color: enabled ? color.withValues(alpha: 0.12) : theme.surfaceHigh,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: enabled
-                ? color.withValues(alpha: 0.3)
-                : theme.textMuted.withValues(alpha: 0.15),
+    child: PressScale(
+      enabled: enabled,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.standard,
+          width: 44,
+          height: 52,
+          decoration: BoxDecoration(
+            color: enabled ? color.withValues(alpha: 0.12) : theme.surfaceHigh,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: enabled
+                  ? color.withValues(alpha: 0.3)
+                  : theme.textMuted.withValues(alpha: 0.15),
+            ),
           ),
+          child: Icon(icon, color: enabled ? color : theme.textMuted, size: 20),
         ),
-        child: Icon(icon, color: enabled ? color : theme.textMuted, size: 20),
       ),
     ),
   );
