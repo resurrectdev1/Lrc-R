@@ -363,12 +363,15 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
             }) async {
               if (!await _confirmOverwrite(session)) return;
               await _loadRawLyrics(session, raw);
-              if (title.isNotEmpty && session.title.isEmpty)
+              if (title.isNotEmpty && session.title.isEmpty) {
                 session.setTitle(title);
-              if (artist.isNotEmpty && session.artist.isEmpty)
+              }
+              if (artist.isNotEmpty && session.artist.isEmpty) {
                 session.setArtist(artist);
-              if (album.isNotEmpty && session.album.isEmpty)
+              }
+              if (album.isNotEmpty && session.album.isEmpty) {
                 session.setAlbum(album);
+              }
               if (by.isNotEmpty && session.by.isEmpty) session.setBy(by);
               HapticFeedback.lightImpact();
             },

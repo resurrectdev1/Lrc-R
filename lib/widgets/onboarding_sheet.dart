@@ -209,9 +209,7 @@ class _LrcOnboardingSheetState extends State<LrcOnboardingSheet> {
                 child: FilledButton(
                   onPressed: _advance,
                   style: FilledButton.styleFrom(
-                    backgroundColor: isLast
-                        ? theme.accentBlue
-                        : theme.primary,
+                    backgroundColor: isLast ? theme.accentBlue : theme.primary,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

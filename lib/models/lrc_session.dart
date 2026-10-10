@@ -161,7 +161,6 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-
   Future<void> unloadAudio() async {
     await _player.stop();
     await _player.release();
@@ -319,8 +318,9 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
           milliseconds: ms,
         );
         final text = ts.group(4)!.trim();
-        if (text.isNotEmpty)
+        if (text.isNotEmpty) {
           result.add(LrcLine(text: text, timestamp: timestamp));
+        }
       } else {
         result.add(LrcLine(text: line));
       }
@@ -357,8 +357,9 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
         lines[a.index] = lines[a.index].copyWith(text: a.previousText);
       case _DeleteAction a:
         lines.insert(a.index, a.line);
-        if (tagIndex >= a.index)
+        if (tagIndex >= a.index) {
           tagIndex = (tagIndex + 1).clamp(0, lines.length);
+        }
       case _MoveAction a:
         _moveLine(a.newIndex, a.oldIndex, pushUndo: false);
     }
