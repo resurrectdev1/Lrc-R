@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+### Changed
+
+* Web app icons also updated (to be done)
+
+---
+
+## [0.3.6] - 2026-10-11
+
 ### Added
 
 * Animations across the app, e.g. lyric lines fade in one after another when lyrics load, the audio and lyrics setup steps reveal as they appear, and buttons, lyric lines and player controls give subtle press feedback
@@ -26,12 +34,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Custom hex accent picker
 * Improved app icon (Made a proper gradient using digital tools instead of a hacky airbrush implementation of a gradient)
 * All animation durations and curves now use the shared motion settings, so sheets, dialogs and pickers feel consistent
-* Web app icons also updated (to be done)
 
 ### Fixed
 
-* Missing v0.3.0 changelog in CHANGELOG.md
 * Restore session widget not being in material you / following custom accent color
+
+---
+
+## [0.3.4] - 2026-
+
+### Changed
+
+* Material you is now used in all aspects of the app
+
+### Fixed
+
+* Added Missing v0.3.0 changelog in CHANGELOG.md
+* Fixed Kisweb heap buffer bug crashing when loading big audio files
 
 ---
 
