@@ -144,7 +144,10 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Discard', style: TextStyle(color: theme.textMuted)),
+                child: Text(
+                  'Discard',
+                  style: TextStyle(color: theme.textMuted),
+                ),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
