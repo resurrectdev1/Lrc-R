@@ -94,6 +94,10 @@ class _LrcSettingsSheetState extends State<LrcSettingsSheet> {
                     'Material You',
                     style: TextStyle(color: theme.textPrimary),
                   ),
+                  subtitle: Text(
+                    'Use your wallpaper accent color',
+                    style: TextStyle(color: theme.textMuted),
+                  ),
                   activeThumbColor: theme.primary,
                   value: liveSettings.materialYou,
                   onChanged: (val) {
@@ -375,7 +379,7 @@ class _AccentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = settings.theme;
-    final usesSystemColors = settings.materialYou;
+    final usesSystemColors = settings.materialYou && settings.hasDynamicColors;
     final custom = settings.customAccent;
 
     final subtitle = usesSystemColors
