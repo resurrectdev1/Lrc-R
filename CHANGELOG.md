@@ -13,6 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 * Web app icons also updated (to be done)
+  
+* Material You now only changes the accent color (taken from your wallpaper) instead of replacing the whole theme, so Dark Blue, AMOLED Black and White Minimal keep their own surfaces
 
 ---
 
