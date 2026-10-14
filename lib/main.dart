@@ -76,7 +76,7 @@ class LrcMakerApp extends StatelessWidget {
           primary: gt.primary,
           error: LrcTheme.errorRed,
           onSurface: gt.textPrimary,
-          onPrimary: Colors.white,
+          onPrimary: gt.onAccent,
         );
     return ThemeData(
       useMaterial3: true,
