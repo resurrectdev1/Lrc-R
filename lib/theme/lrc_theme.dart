@@ -22,10 +22,7 @@ class LrcTheme {
     return brightness == Brightness.light ? dynamicLight : dynamicDark;
   }
 
-  bool get _dynSurfaces => _dyn != null && mode != LrcThemeMode.amoledBlack;
-
   Color get bg {
-    if (_dynSurfaces) return _dyn!.surface;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF080E18);
@@ -37,7 +34,6 @@ class LrcTheme {
   }
 
   Color get surface {
-    if (_dynSurfaces) return _dyn!.surfaceContainerLow;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF0D1623);
@@ -49,7 +45,6 @@ class LrcTheme {
   }
 
   Color get surfaceHigh {
-    if (_dynSurfaces) return _dyn!.surfaceContainerHigh;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF122035);
@@ -61,7 +56,6 @@ class LrcTheme {
   }
 
   Color get cardBg {
-    if (_dynSurfaces) return _dyn!.surfaceContainer;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF0F1C30);
@@ -90,7 +84,6 @@ class LrcTheme {
   }
 
   Color get textPrimary {
-    if (_dynSurfaces) return _dyn!.onSurface;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFFE4EDF8);
@@ -102,7 +95,6 @@ class LrcTheme {
   }
 
   Color get textSecondary {
-    if (_dynSurfaces) return _dyn!.onSurfaceVariant;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF7A9CC4);
@@ -114,7 +106,6 @@ class LrcTheme {
   }
 
   Color get textMuted {
-    if (_dynSurfaces) return _dyn!.outline;
     switch (mode) {
       case LrcThemeMode.darkSlate:
         return const Color(0xFF2E4D6E);
@@ -124,6 +115,11 @@ class LrcTheme {
         return const Color(0xFF999999);
     }
   }
+
+  /// Readable foreground for content drawn on top of [primary].
+  Color get onAccent => primary.computeLuminance() > 0.55
+      ? const Color(0xFF1B1B1F)
+      : Colors.white;
 
   Brightness get brightness {
     switch (mode) {
