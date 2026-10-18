@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+---
+
+## [0.3.8] - 2026-10-18
+
 ### Added
 
 * Library: pick a music folder and Lrc-R finds every song inside it, including subfolders.
