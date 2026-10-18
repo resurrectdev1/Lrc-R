@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/library_scanner.dart';
 
 class LrcLine {
   final String text;
@@ -75,6 +78,8 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
 
   String? audioPath;
   String? audioName;
+
+  LibraryTrack? currentTrack;
   Duration audioDuration = Duration.zero;
   Duration audioPosition = Duration.zero;
   bool isPlaying = false;
@@ -161,11 +166,37 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  Future<bool> openTrack(LibraryTrack track) async {
+    await unloadAudio();
+    clearLyrics();
+    _title = '';
+    _artist = '';
+    _album = '';
+    _by = '';
+
+    await loadAudio(track.path, track.name);
+    currentTrack = track;
+
+    for (final path in [track.lrcPath, track.txtPath]) {
+      final f = File(path);
+      try {
+        if (await f.exists()) {
+          setLyricsText(await f.readAsString());
+          return hasLyrics;
+        }
+      } catch (_) {
+      }
+    }
+    notifyListeners();
+    return false;
+  }
+
   Future<void> unloadAudio() async {
     await _player.stop();
     await _player.release();
     audioPath = null;
     audioName = null;
+    currentTrack = null;
     audioDuration = Duration.zero;
     audioPosition = Duration.zero;
     isPlaying = false;
