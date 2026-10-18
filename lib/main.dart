@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 
 import 'models/lrc_session.dart';
+import 'providers/lrc_library.dart';
 import 'providers/lrc_settings.dart';
 import 'theme/lrc_theme.dart';
 import 'screens/home_screen.dart';
@@ -15,10 +16,14 @@ Future<void> main() async {
   final settings = LrcSettings();
   await settings.init(null, null);
 
+  final library = LrcLibrary();
+  await library.init();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: library),
         ChangeNotifierProvider(create: (_) => LrcSession()),
       ],
       child: const LrcMakerApp(),
