@@ -10,6 +10,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+### Added
+
+* Library: pick a music folder and Lrc-R finds every song inside it, including subfolders (#29)
+* Each song shows whether it already has a synced `.lrc`, a plain `.txt`, or no lyrics, with search and a "Needs lyrics" filter
+* Opening a song from the library loads its audio and any existing `.lrc`/`.txt` next to it automatically
+* Saving a song opened from the library writes the `.lrc` right next to it (falls back to the save dialog if Android blocks it), with a "Next" action to jump to the next song that needs lyrics
+
 ### Changed
 
 * Material You now only changes the accent color (taken from your wallpaper) instead of replacing the whole theme, so Dark Blue, AMOLED Black and White Minimal keep their own surfaces
