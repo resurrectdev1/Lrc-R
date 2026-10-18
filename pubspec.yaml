@@ -26,6 +26,9 @@ dependencies:
   # File picking (audio + lyrics)
   file_picker: ^8.1.2
 
+  # Library folder scanning (Android audio/storage permission)
+  permission_handler: ^11.3.1
+
   # Audio playback
   audioplayers: ^6.1.0
 
