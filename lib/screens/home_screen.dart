@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +13,10 @@ import 'package:confetti/confetti.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/lrc_session.dart';
+import '../providers/lrc_library.dart';
 import '../providers/lrc_settings.dart';
+import '../services/library_scanner.dart';
+import 'library_screen.dart';
 import '../theme/lrc_theme.dart';
 import '../theme/motion.dart';
 import '../theme/transitions.dart';
@@ -194,6 +198,23 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
       curve: Motion.standard,
       alignment: 0.5,
     );
+  }
+
+  void _openLibrary() {
+    Navigator.of(context).push(LrcRoute(builder: (_) => const LibraryScreen()));
+  }
+
+  Future<void> _openNextFromLibrary(LrcSession session) async {
+    final lib = context.read<LrcLibrary>();
+    final next = lib.nextNeedingLyrics(session.currentTrack?.path);
+    if (next == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(_snack('Every song in this folder is synced 🎉'));
+      return;
+    }
+    await session.openTrack(next);
+    HapticFeedback.lightImpact();
   }
 
   Future<void> _pickAudio(LrcSession session) async {
@@ -524,6 +545,29 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
         : 'lyrics';
     final fileName = '$baseName.lrc';
 
+    final track = session.currentTrack;
+    if (track != null) {
+      try {
+        await File(track.lrcPath).writeAsString(lrc);
+        if (!mounted) return;
+        context.read<LrcLibrary>().markStatus(track.path, LyricsStatus.synced);
+        await session.discardDraft();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          _snack(
+            'Saved next to the song ✓',
+            action: SnackBarAction(
+              label: 'Next',
+              textColor: Colors.white,
+              onPressed: () => _openNextFromLibrary(session),
+            ),
+          ),
+        );
+        return;
+      } catch (_) {
+      }
+    }
+
     try {
       final savePath = await FilePicker.platform.saveFile(
         dialogTitle: 'Save LRC file',
@@ -553,13 +597,15 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     }
   }
 
-  SnackBar _snack(String msg, {bool error = false}) => SnackBar(
-    content: Text(msg),
-    backgroundColor: error ? LrcTheme.errorRed : LrcTheme.accentGreen,
-    behavior: SnackBarBehavior.floating,
-    duration: const Duration(seconds: 3),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  );
+  SnackBar _snack(String msg, {bool error = false, SnackBarAction? action}) =>
+      SnackBar(
+        action: action,
+        content: Text(msg),
+        backgroundColor: error ? LrcTheme.errorRed : LrcTheme.accentGreen,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      );
 
   void _showAboutSheet(BuildContext ctx, LrcTheme theme) {
     final navBar = MediaQuery.of(ctx).viewPadding.bottom;
@@ -714,6 +760,16 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
           ),
         ),
         actions: [
+          if (!kIsWeb)
+            IconButton(
+              icon: Icon(
+                Icons.library_music_outlined,
+                color: theme.textSecondary,
+                size: 20,
+              ),
+              onPressed: _openLibrary,
+              tooltip: 'Library',
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(
@@ -959,6 +1015,21 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                 ),
               ),
             ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: _openLibrary,
+                icon: Icon(
+                  Icons.library_music_rounded,
+                  size: 18,
+                  color: theme.textSecondary,
+                ),
+                label: Text(
+                  'Or browse a music folder',
+                  style: TextStyle(color: theme.textSecondary, fontSize: 13),
+                ),
+              ),
+            ],
           ],
         ),
       );
