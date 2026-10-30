@@ -40,6 +40,7 @@ Simply open Lrc-R & load your audio file, then paste or import your lyrics. Hit 
 ### Download
 
 [![Downloads](https://img.shields.io/github/downloads/resurrectdev1/Lrc-R/total)](https://github.com/resurrectdev1/Lrc-R/releases)
+![Android](https://img.shields.io/badge/Android-7--16-228B22?logo=android&logoColor=white)
 [![Reproducibility](https://img.shields.io/badge/Reproducible%20Build-F--Droid-blue)](https://verification.f-droid.org/packages/com.resurrect.lrc_r/)
 
 <a href="https://github.com/resurrectdev1/Lrc-R/releases/latest">
