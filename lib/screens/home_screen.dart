@@ -12,6 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:confetti/confetti.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../models/lrc_format.dart';
 import '../models/lrc_session.dart';
 import '../providers/lrc_library.dart';
 import '../providers/lrc_settings.dart';
@@ -26,6 +27,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/press_scale.dart';
 import '../widgets/reveal.dart';
 import '../widgets/settings_sheet.dart';
+import '../widgets/word_sync_pad.dart';
 import '../widgets/onboarding_sheet.dart';
 
 class LrcHomeScreen extends StatefulWidget {
@@ -421,9 +423,11 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
 
   Future<void> _copyToClipboard(LrcSession session) async {
     final settings = context.read<LrcSettings>();
+    final format = settings.exportFormat;
     await Clipboard.setData(
       ClipboardData(
-        text: session.buildLrc(
+        text: session.buildExport(
+          format,
           offsetMs: settings.timestampOffsetMs,
           minimal: settings.minimalMetadata,
         ),
@@ -433,20 +437,22 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
     if (mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(_snack('LRC copied to clipboard ✓'));
+      ).showSnackBar(_snack('${format.label} copied to clipboard ✓'));
     }
   }
 
   Future<void> _shareLrc(LrcSession session) async {
     final settings = context.read<LrcSettings>();
-    final lrc = session.buildLrc(
+    final format = settings.exportFormat;
+    final lrc = session.buildExport(
+      format,
       offsetMs: settings.timestampOffsetMs,
       minimal: settings.minimalMetadata,
     );
     final baseName = session.audioName != null
         ? session.audioName!.replaceAll(RegExp(r'\.[^.]+$'), '')
         : 'lyrics';
-    final fileName = '$baseName.lrc';
+    final fileName = '$baseName.${format.extension}';
 
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$fileName');
@@ -491,7 +497,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               ),
               const SizedBox(height: 20),
               Text(
-                'Export LRC',
+                'Export lyrics',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -503,6 +509,8 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                 'Choose how you\'d like to export your synced lyrics',
                 style: TextStyle(fontSize: 13, color: theme.textSecondary),
               ),
+              const SizedBox(height: 16),
+              _ExportFormatPicker(session: session, theme: theme),
               const SizedBox(height: 20),
               _ExportOptionTile(
                 icon: Icons.copy_rounded,
@@ -520,7 +528,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
                 icon: Icons.ios_share_rounded,
                 color: theme.accentTeal,
                 label: 'Share',
-                sublabel: 'Send the .lrc file to another app',
+                sublabel: 'Send the file to another app',
                 theme: theme,
                 onTap: () {
                   Navigator.pop(ctx);
@@ -536,26 +544,33 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
 
   Future<void> _saveLrc(LrcSession session) async {
     final settings = context.read<LrcSettings>();
-    final lrc = session.buildLrc(
+    final format = settings.exportFormat;
+    final lrc = session.buildExport(
+      format,
       offsetMs: settings.timestampOffsetMs,
       minimal: settings.minimalMetadata,
     );
     final baseName = session.audioName != null
         ? session.audioName!.replaceAll(RegExp(r'\.[^.]+$'), '')
         : 'lyrics';
-    final fileName = '$baseName.lrc';
+    final fileName = '$baseName.${format.extension}';
 
     final track = session.currentTrack;
     if (track != null) {
       try {
-        await File(track.lrcPath).writeAsString(lrc);
+        await File(track.lyricsPathFor(format.extension)).writeAsString(lrc);
         if (!mounted) return;
-        context.read<LrcLibrary>().markStatus(track.path, LyricsStatus.synced);
+        if (format != ExportFormat.ttml) {
+          context.read<LrcLibrary>().markStatus(
+            track.path,
+            LyricsStatus.synced,
+          );
+        }
         await session.discardDraft();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           _snack(
-            'Saved next to the song ✓',
+            'Saved $fileName next to the song ✓',
             action: SnackBarAction(
               label: 'Next',
               textColor: Colors.white,
@@ -564,16 +579,15 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
           ),
         );
         return;
-      } catch (_) {
-      }
+      } catch (_) {}
     }
 
     try {
       final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save LRC file',
+        dialogTitle: 'Save ${format.label} file',
         fileName: fileName,
         type: FileType.custom,
-        allowedExtensions: ['lrc'],
+        allowedExtensions: [format.extension],
         bytes: Uint8List.fromList(utf8.encode(lrc)),
       );
 
@@ -1294,17 +1308,117 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
             onUntag: () => session.untag(i),
             onEdit: (txt) => session.editLine(i, txt),
             onDelete: () => session.deleteLine(i),
+            wordMode: session.syncMode == SyncMode.word,
+            wordIndex: session.wordIndex,
+            onWordTap: (k) => session.setWordCursor(i, k),
           ),
         );
       },
     );
   }
 
+  void _setSyncMode(LrcSession session, SyncMode mode) {
+    if (mode == session.syncMode) return;
+    session.setSyncMode(mode);
+    HapticFeedback.selectionClick();
+    if (mode != SyncMode.word) return;
+    final settings = context.read<LrcSettings>();
+    if (settings.exportFormat == ExportFormat.lrc) {
+      settings.setExportFormat(ExportFormat.elrc);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(_snack('Export set to eLRC so word timings are kept'));
+    }
+  }
+
+  void _stampWord(LrcSession session, bool Function() stamp) {
+    final lineBefore = session.tagIndex;
+    if (!stamp()) return;
+    if (session.tagIndex != lineBefore) {
+      _scrollToTagIndex(session.tagIndex, session.totalLines);
+    }
+  }
+
+  void _confirmReset(LrcSession session, LrcTheme theme) => showLrcDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(
+        'Reset all timestamps?',
+        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w700),
+      ),
+      content: Text(
+        'All tagged timestamps will be cleared.',
+        style: TextStyle(color: theme.textSecondary),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text('Cancel', style: TextStyle(color: theme.textMuted)),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: LrcTheme.errorRed),
+          onPressed: () {
+            session.resetAllTags();
+            Navigator.pop(ctx);
+          },
+          child: const Text('Reset'),
+        ),
+      ],
+    ),
+  );
+
   Widget _buildActionBar(LrcSession session, LrcTheme theme) {
     final navBar = MediaQuery.of(context).viewPadding.bottom;
-    final progress = session.totalLines == 0
-        ? 0.0
-        : session.taggedCount / session.totalLines;
+    final wordMode = session.syncMode == SyncMode.word;
+    final done = wordMode ? session.timedWords : session.taggedCount;
+    final total = wordMode ? session.totalWords : session.totalLines;
+    final progress = total == 0 ? 0.0 : done / total;
+    final canStamp = session.tagIndex < session.totalLines;
+    final format = context.watch<LrcSettings>().exportFormat;
+
+    Widget undo({bool wide = false}) => _ActionIconButton(
+      icon: Icons.undo_rounded,
+      color: theme.accentPurple,
+      tooltip: 'Undo',
+      theme: theme,
+      enabled: session.canUndo,
+      width: wide ? double.infinity : 44,
+      height: wide ? 44 : 52,
+      onTap: () {
+        session.undoLast();
+        HapticFeedback.lightImpact();
+      },
+    );
+    Widget share({bool wide = false}) => _ActionIconButton(
+      icon: Icons.ios_share_rounded,
+      color: theme.accentBlue,
+      tooltip: 'Copy or Share',
+      theme: theme,
+      enabled: session.canExport,
+      width: wide ? double.infinity : 44,
+      height: wide ? 44 : 52,
+      onTap: () => _showExportOptionsSheet(session, theme),
+    );
+    Widget save({bool wide = false}) => _ActionIconButton(
+      icon: Icons.download_rounded,
+      color: theme.accentTeal,
+      tooltip: 'Save ${format.label}',
+      theme: theme,
+      enabled: session.canExport,
+      width: wide ? double.infinity : 44,
+      height: wide ? 44 : 52,
+      onTap: () => _saveLrc(session),
+    );
+    Widget reset({bool wide = false}) => _ActionIconButton(
+      icon: Icons.restart_alt_rounded,
+      color: LrcTheme.errorRed,
+      tooltip: 'Reset all tags',
+      theme: theme,
+      enabled: session.taggedCount > 0,
+      width: wide ? double.infinity : 44,
+      height: wide ? 44 : 52,
+      onTap: () => _confirmReset(session, theme),
+    );
 
     return Container(
       color: theme.bg,
@@ -1314,6 +1428,12 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
         children: [
           Row(
             children: [
+              _SyncModeSwitch(
+                mode: session.syncMode,
+                theme: theme,
+                onChanged: (m) => _setSyncMode(session, m),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
@@ -1332,7 +1452,7 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
               ),
               const SizedBox(width: 12),
               Text(
-                '${session.taggedCount} / ${session.totalLines}',
+                '$done / $total${wordMode ? ' words' : ''}',
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.textMuted,
@@ -1342,118 +1462,74 @@ class _LrcHomeScreenState extends State<LrcHomeScreen>
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: PressScale(
-                  enabled: session.tagIndex < session.totalLines,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.primary,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(Icons.timer_rounded, size: 20),
-                    label: Text(
-                      session.tagIndex < session.totalLines
-                          ? 'Tag  Line ${session.tagIndex + 1}'
-                          : 'All lines tagged ✓',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                    onPressed: session.tagIndex < session.totalLines
-                        ? () {
-                            session.tagCurrentLine();
-                            _scrollToTagIndex(
-                              session.tagIndex,
-                              session.totalLines,
-                            );
-                            HapticFeedback.mediumImpact();
-                          }
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              _ActionIconButton(
-                icon: Icons.undo_rounded,
-                color: theme.accentPurple,
-                tooltip: 'Undo',
-                theme: theme,
-                enabled: session.canUndo,
-                onTap: () {
-                  session.undoLast();
-                  HapticFeedback.lightImpact();
-                },
-              ),
-              const SizedBox(width: 8),
-              _ActionIconButton(
-                icon: Icons.ios_share_rounded,
-                color: theme.accentBlue,
-                tooltip: 'Copy or Share',
-                theme: theme,
-                enabled: session.canExport,
-                onTap: () => _showExportOptionsSheet(session, theme),
-              ),
-              const SizedBox(width: 8),
-              _ActionIconButton(
-                icon: Icons.download_rounded,
-                color: theme.accentTeal,
-                tooltip: 'Save LRC',
-                theme: theme,
-                enabled: session.canExport,
-                onTap: () => _saveLrc(session),
-              ),
-              const SizedBox(width: 8),
-              _ActionIconButton(
-                icon: Icons.restart_alt_rounded,
-                color: LrcTheme.errorRed,
-                tooltip: 'Reset all tags',
-                theme: theme,
-                enabled: session.taggedCount > 0,
-                onTap: () => showLrcDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(
-                      'Reset all timestamps?',
-                      style: TextStyle(
-                        color: theme.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    content: Text(
-                      'All tagged timestamps will be cleared.',
-                      style: TextStyle(color: theme.textSecondary),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(color: theme.textMuted),
+          if (wordMode) ...[
+            WordSyncPads(
+              theme: theme,
+              enabled: canStamp,
+              onHoldStart: () => _stampWord(session, session.beginHeldWord),
+              onHoldEnd: session.endHeldWord,
+              onNext: () => _stampWord(session, session.tagNextWord),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: undo(wide: true)),
+                const SizedBox(width: 8),
+                Expanded(child: share(wide: true)),
+                const SizedBox(width: 8),
+                Expanded(child: save(wide: true)),
+                const SizedBox(width: 8),
+                Expanded(child: reset(wide: true)),
+              ],
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: PressScale(
+                    enabled: canStamp,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.primary,
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: LrcTheme.errorRed,
+                      icon: const Icon(Icons.timer_rounded, size: 20),
+                      label: Text(
+                        canStamp
+                            ? 'Tag  Line ${session.tagIndex + 1}'
+                            : 'All lines tagged ✓',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
                         ),
-                        onPressed: () {
-                          session.resetAllTags();
-                          Navigator.pop(ctx);
-                        },
-                        child: const Text('Reset'),
                       ),
-                    ],
+                      onPressed: canStamp
+                          ? () {
+                              session.tagCurrentLine();
+                              _scrollToTagIndex(
+                                session.tagIndex,
+                                session.totalLines,
+                              );
+                              HapticFeedback.mediumImpact();
+                            }
+                          : null,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                undo(),
+                const SizedBox(width: 8),
+                share(),
+                const SizedBox(width: 8),
+                save(),
+                const SizedBox(width: 8),
+                reset(),
+              ],
+            ),
         ],
       ),
     );
@@ -2238,6 +2314,136 @@ class _ExportOptionTile extends StatelessWidget {
   );
 }
 
+class _SyncModeSwitch extends StatelessWidget {
+  final SyncMode mode;
+  final LrcTheme theme;
+  final ValueChanged<SyncMode> onChanged;
+
+  const _SyncModeSwitch({
+    required this.mode,
+    required this.theme,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: theme.surfaceHigh,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (m, label) in const [
+          (SyncMode.line, 'Line'),
+          (SyncMode.word, 'Word'),
+        ])
+          GestureDetector(
+            onTap: () => onChanged(m),
+            child: AnimatedContainer(
+              duration: Motion.fast,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: m == mode ? theme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: m == mode ? Colors.white : theme.textMuted,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _ExportFormatPicker extends StatelessWidget {
+  final LrcSession session;
+  final LrcTheme theme;
+
+  const _ExportFormatPicker({required this.session, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<LrcSettings>();
+    final current = settings.exportFormat;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            for (final f in ExportFormat.values)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: f == ExportFormat.values.last ? 0 : 8,
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      settings.setExportFormat(f);
+                      HapticFeedback.selectionClick();
+                    },
+                    child: AnimatedContainer(
+                      duration: Motion.fast,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: f == current
+                            ? theme.primary.withValues(alpha: 0.16)
+                            : theme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: f == current
+                              ? theme.primary
+                              : theme.textMuted.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            f.label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: f == current
+                                  ? theme.primary
+                                  : theme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            f.hint,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (current != ExportFormat.lrc && !session.hasWordTimings)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              'No word timings yet, so lines will be exported line by line. '
+              'Switch to Word sync to time each word.',
+              style: TextStyle(fontSize: 12, color: theme.textMuted),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _ActionIconButton extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -2245,6 +2451,8 @@ class _ActionIconButton extends StatelessWidget {
   final LrcTheme theme;
   final bool enabled;
   final VoidCallback onTap;
+  final double width;
+  final double height;
 
   const _ActionIconButton({
     required this.icon,
@@ -2253,6 +2461,8 @@ class _ActionIconButton extends StatelessWidget {
     required this.theme,
     required this.onTap,
     this.enabled = true,
+    this.width = 44,
+    this.height = 52,
   });
 
   @override
@@ -2265,8 +2475,8 @@ class _ActionIconButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.base,
           curve: Motion.standard,
-          width: 44,
-          height: 52,
+          width: width,
+          height: height,
           decoration: BoxDecoration(
             color: enabled ? color.withValues(alpha: 0.12) : theme.surfaceHigh,
             borderRadius: BorderRadius.circular(14),
