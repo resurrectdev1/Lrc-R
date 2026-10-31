@@ -10,6 +10,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 > Changes staged for the next release go here. Move them down when you cut a tag.>
 
+### Added
+
+* Word-by-word sync: a Line / Word switch in the sync bar. In Word mode, **Next word** stamps a word and flows straight into the following one, and **Hold** marks a word's start when pressed and its end when released. They are built to be used with one thumb each.
+* eLRC (enhanced LRC) and TTML export, picked in the export sheet. Lines without word timings are written line by line.
+* Opening an existing eLRC file loads its word timings. Songs opened from the library also pick up `.elrc` files, and saving from the library writes the chosen format next to the song.
+* Word timings are kept in the autosaved draft.
+
+### Changed
+
+* Undo history is now 200 steps (was 20), since word syncing adds one step per word.
+* Word sync reads the playback position with sub-update precision instead of the last reported value, so presses are stamped closer to when they happen.
+* Plain-LRC export keeps the order of untimed lines (the sort used to be unstable).
+
 ---
 
 ## [0.3.8] - 2026-10-18
