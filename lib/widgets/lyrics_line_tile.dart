@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/lrc_session.dart';
 import '../theme/lrc_theme.dart';
 import '../theme/motion.dart';
@@ -15,6 +16,10 @@ class LyricsLineTile extends StatefulWidget {
   final ValueChanged<String> onEdit;
   final VoidCallback onDelete;
 
+  final bool wordMode;
+  final int wordIndex;
+  final ValueChanged<int>? onWordTap;
+
   const LyricsLineTile({
     super.key,
     required this.line,
@@ -26,6 +31,9 @@ class LyricsLineTile extends StatefulWidget {
     required this.onUntag,
     required this.onEdit,
     required this.onDelete,
+    this.wordMode = false,
+    this.wordIndex = 0,
+    this.onWordTap,
   });
 
   @override
@@ -93,6 +101,56 @@ class _LyricsLineTileState extends State<LyricsLineTile>
     );
     return '$m:$s.$cs';
   }
+
+  Widget _buildWords(LrcTheme theme, bool isNext) {
+    final tokens = widget.line.tokens;
+    final timings = widget.line.words;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 2,
+      children: [
+        for (var i = 0; i < tokens.length; i++)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => widget.onWordTap?.call(i),
+            child: _wordChip(
+              theme,
+              tokens[i],
+              timed:
+                  timings != null && i < timings.length && timings[i] != null,
+              current: isNext && i == widget.wordIndex,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _wordChip(
+    LrcTheme theme,
+    String word, {
+    required bool timed,
+    required bool current,
+  }) => AnimatedContainer(
+    duration: Motion.fast,
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+    decoration: BoxDecoration(
+      color: current ? theme.primary.withValues(alpha: 0.22) : null,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      word,
+      style: TextStyle(
+        fontSize: 14,
+        height: 1.4,
+        fontWeight: current ? FontWeight.w700 : FontWeight.w500,
+        color: current
+            ? theme.textPrimary
+            : timed
+            ? theme.primary
+            : theme.textSecondary,
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -232,6 +290,8 @@ class _LyricsLineTileState extends State<LyricsLineTile>
                           onSubmitted: (_) => _commitEdit(),
                         ),
                       )
+                    : widget.wordMode
+                    ? _buildWords(theme, isNext)
                     : Text(
                         widget.line.text,
                         style: TextStyle(
