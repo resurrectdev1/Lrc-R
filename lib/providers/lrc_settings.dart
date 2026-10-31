@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/lrc_format.dart';
 import '../theme/lrc_theme.dart';
 
 class LrcSettings extends ChangeNotifier {
@@ -12,11 +13,13 @@ class LrcSettings extends ChangeNotifier {
   bool _keepScreenOn = false;
   int _timestampOffsetMs = 0;
   bool _minimalMetadata = false;
+  ExportFormat _exportFormat = ExportFormat.lrc;
   Color? _customAccent;
 
   bool get keepScreenOn => _keepScreenOn;
   int get timestampOffsetMs => _timestampOffsetMs;
   bool get minimalMetadata => _minimalMetadata;
+  ExportFormat get exportFormat => _exportFormat;
 
   LrcThemeMode get themeMode => _themeMode;
   bool get materialYou => _materialYou;
@@ -54,6 +57,11 @@ class LrcSettings extends ChangeNotifier {
     _keepScreenOn = prefs.getBool('lrc_keep_screen_on') ?? false;
     _timestampOffsetMs = prefs.getInt('lrc_timestamp_offset') ?? 0;
     _minimalMetadata = prefs.getBool('lrc_minimal_metadata') ?? false;
+    final savedFormat = prefs.getString('lrc_export_format');
+    _exportFormat = ExportFormat.values.firstWhere(
+      (f) => f.name == savedFormat,
+      orElse: () => ExportFormat.lrc,
+    );
     final accentInt = prefs.getInt('lrc_custom_accent');
     if (accentInt != null) _customAccent = Color(accentInt);
     _dynamicLight = dynamicLight;
@@ -107,6 +115,13 @@ class LrcSettings extends ChangeNotifier {
     _minimalMetadata = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('lrc_minimal_metadata', value);
+    notifyListeners();
+  }
+
+  Future<void> setExportFormat(ExportFormat format) async {
+    _exportFormat = format;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lrc_export_format', format.name);
     notifyListeners();
   }
 
