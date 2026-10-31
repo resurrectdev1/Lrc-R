@@ -6,48 +6,32 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/library_scanner.dart';
+import 'lrc_format.dart';
+import 'lrc_line.dart';
 
-class LrcLine {
-  final String text;
-  final Duration? timestamp;
+export 'lrc_line.dart';
 
-  const LrcLine({required this.text, this.timestamp});
-
-  LrcLine copyWith({
-    String? text,
-    Duration? timestamp,
-    bool clearTimestamp = false,
-  }) => LrcLine(
-    text: text ?? this.text,
-    timestamp: clearTimestamp ? null : (timestamp ?? this.timestamp),
-  );
-
-  String get lrcTimestamp {
-    if (timestamp == null) return '';
-    final m = timestamp!.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = timestamp!.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final cs = (timestamp!.inMilliseconds.remainder(1000) ~/ 10)
-        .toString()
-        .padLeft(2, '0');
-    return '[$m:$s.$cs]';
-  }
-
-  bool get isTagged => timestamp != null;
-}
+enum SyncMode { line, word }
 
 sealed class _UndoAction {}
 
 class _TagAction extends _UndoAction {
   final int index;
-  final Duration timestamp;
-  final Duration? previousTimestamp;
-  _TagAction(this.index, this.timestamp, this.previousTimestamp);
+  final LrcLine previous;
+  final int previousTagIndex;
+  final int previousWordIndex;
+  _TagAction(
+    this.index,
+    this.previous,
+    this.previousTagIndex,
+    this.previousWordIndex,
+  );
 }
 
 class _EditAction extends _UndoAction {
   final int index;
-  final String previousText;
-  _EditAction(this.index, this.previousText);
+  final LrcLine previous;
+  _EditAction(this.index, this.previous);
 }
 
 class _DeleteAction extends _UndoAction {
@@ -85,12 +69,24 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   bool isPlaying = false;
   double playbackSpeed = 1.0;
 
+  final Stopwatch _positionClock = Stopwatch();
+  Duration _positionAnchor = Duration.zero;
+  static const _maxExtrapolationMs = 600;
+
   List<LrcLine> lines = [];
   String? lyricsRaw;
   int tagIndex = 0;
 
+  SyncMode syncMode = SyncMode.line;
+
+  int wordIndex = 0;
+
+  int _holdLine = -1;
+  int _holdWord = -1;
+  Duration _holdStart = Duration.zero;
+
   final List<_UndoAction> _undoStack = [];
-  static const _maxUndo = 20;
+  static const _maxUndo = 200;
 
   String _title = '';
   String _artist = '';
@@ -131,10 +127,12 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _player.onPositionChanged.listen((pos) {
       audioPosition = pos;
+      _anchorPosition(pos);
       notifyListeners();
     });
     _player.onPlayerStateChanged.listen((state) {
       isPlaying = state == PlayerState.playing;
+      _anchorPosition(audioPosition);
       notifyListeners();
     });
     _player.onDurationChanged.listen((dur) {
@@ -145,8 +143,27 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
       await _player.seek(Duration.zero);
       isPlaying = false;
       audioPosition = Duration.zero;
+      _anchorPosition(Duration.zero);
       notifyListeners();
     });
+  }
+
+  void _anchorPosition(Duration at) {
+    _positionAnchor = at;
+    _positionClock.reset();
+    if (isPlaying) _positionClock.start();
+  }
+
+  Duration get livePosition {
+    if (!isPlaying || !_positionClock.isRunning) return audioPosition;
+    final elapsedMs = _positionClock.elapsedMicroseconds / 1000.0;
+    final capped = elapsedMs > _maxExtrapolationMs
+        ? _maxExtrapolationMs
+        : elapsedMs;
+    var ms = _positionAnchor.inMilliseconds + (capped * playbackSpeed).round();
+    final end = audioDuration.inMilliseconds;
+    if (end > 0 && ms > end) ms = end;
+    return Duration(milliseconds: ms);
   }
 
   @override
@@ -177,18 +194,29 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     await loadAudio(track.path, track.name);
     currentTrack = track;
 
-    for (final path in [track.lrcPath, track.txtPath]) {
+    for (final path in await _lyricSources(track)) {
       final f = File(path);
       try {
         if (await f.exists()) {
           setLyricsText(await f.readAsString());
           return hasLyrics;
         }
-      } catch (_) {
-      }
+      } catch (_) {}
     }
     notifyListeners();
     return false;
+  }
+
+  Future<List<String>> _lyricSources(LibraryTrack track) async {
+    final synced = <(String, DateTime)>[];
+    for (final path in [track.elrcPath, track.lrcPath]) {
+      try {
+        final f = File(path);
+        if (await f.exists()) synced.add((path, await f.lastModified()));
+      } catch (_) {}
+    }
+    synced.sort((a, b) => b.$2.compareTo(a.$2));
+    return [for (final e in synced) e.$1, track.txtPath];
   }
 
   Future<void> unloadAudio() async {
@@ -211,9 +239,12 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> seek(Duration position) async => _player.seek(position);
+  Future<void> seek(Duration position) async {
+    _anchorPosition(position);
+    await _player.seek(position);
+  }
 
-  Future<void> skipBack5() => _player.seek(
+  Future<void> skipBack5() => seek(
     Duration(
       milliseconds: (audioPosition.inMilliseconds - 5000).clamp(
         0,
@@ -222,7 +253,7 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     ),
   );
 
-  Future<void> skipForward5() => _player.seek(
+  Future<void> skipForward5() => seek(
     Duration(
       milliseconds: (audioPosition.inMilliseconds + 5000).clamp(
         0,
@@ -232,6 +263,7 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   );
 
   Future<void> setSpeed(double speed) async {
+    _anchorPosition(livePosition);
     playbackSpeed = speed;
     await _player.setPlaybackRate(speed);
     notifyListeners();
@@ -239,17 +271,12 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
 
   MetadataConflict? setLyricsText(String raw) {
     lyricsRaw = raw;
-    String parsedTitle = '';
-    String parsedArtist = '';
-    String parsedAlbum = '';
-    String parsedBy = '';
-    final parsed = _parseLrc(
-      raw,
-      outTitle: (v) => parsedTitle = v,
-      outArtist: (v) => parsedArtist = v,
-      outAlbum: (v) => parsedAlbum = v,
-      outBy: (v) => parsedBy = v,
-    );
+    final parsedLrc = parseLrc(raw);
+    final parsedTitle = parsedLrc.title;
+    final parsedArtist = parsedLrc.artist;
+    final parsedAlbum = parsedLrc.album;
+    final parsedBy = parsedLrc.by;
+    final parsed = parsedLrc.hasTimestamps ? parsedLrc.lines : null;
 
     if (parsed != null) {
       lines = parsed;
@@ -264,6 +291,8 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
           .toList();
       tagIndex = 0;
     }
+    wordIndex = 0;
+    _holdLine = -1;
     _undoStack.clear();
 
     final fileHasMeta =
@@ -305,87 +334,120 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  List<LrcLine>? _parseLrc(
-    String raw, {
-    required void Function(String) outTitle,
-    required void Function(String) outArtist,
-    required void Function(String) outAlbum,
-    required void Function(String) outBy,
-  }) {
-    final tsPattern = RegExp(r'^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$');
-    final metaPattern = RegExp(
-      r'^\[(ti|ar|al|by|offset|length):(.*)\]$',
-      caseSensitive: false,
-    );
-
-    final result = <LrcLine>[];
-    bool foundTimestamp = false;
-
-    for (final rawLine in raw.split('\n')) {
-      final line = rawLine.trim();
-      if (line.isEmpty) continue;
-
-      final meta = metaPattern.firstMatch(line);
-      if (meta != null) {
-        final key = meta.group(1)!.toLowerCase();
-        final val = meta.group(2)!.trim();
-        if (key == 'ti') outTitle(val);
-        if (key == 'ar') outArtist(val);
-        if (key == 'al') outAlbum(val);
-        if (key == 'by') outBy(val);
-        continue;
-      }
-
-      final ts = tsPattern.firstMatch(line);
-      if (ts != null) {
-        foundTimestamp = true;
-        final mins = int.parse(ts.group(1)!);
-        final secs = int.parse(ts.group(2)!);
-        final csStr = ts.group(3)!;
-        final ms = csStr.length == 2 ? int.parse(csStr) * 10 : int.parse(csStr);
-        final timestamp = Duration(
-          minutes: mins,
-          seconds: secs,
-          milliseconds: ms,
-        );
-        final text = ts.group(4)!.trim();
-        if (text.isNotEmpty) {
-          result.add(LrcLine(text: text, timestamp: timestamp));
-        }
-      } else {
-        result.add(LrcLine(text: line));
-      }
-    }
-
-    if (!foundTimestamp) return null;
-    result.sort((a, b) {
-      if (a.timestamp == null && b.timestamp == null) return 0;
-      if (a.timestamp == null) return 1;
-      if (b.timestamp == null) return -1;
-      return a.timestamp!.compareTo(b.timestamp!);
-    });
-    return result;
-  }
-
   void tagCurrentLine() {
     if (tagIndex >= lines.length) return;
-    _push(_TagAction(tagIndex, audioPosition, lines[tagIndex].timestamp));
-    lines[tagIndex] = lines[tagIndex].copyWith(timestamp: audioPosition);
+    _push(_TagAction(tagIndex, lines[tagIndex], tagIndex, wordIndex));
+    lines[tagIndex] = lines[tagIndex].copyWith(
+      timestamp: audioPosition,
+      clearWords: true,
+    );
     tagIndex = (tagIndex + 1).clamp(0, lines.length);
+    wordIndex = 0;
     notifyListeners();
   }
+
+  void setSyncMode(SyncMode mode) {
+    if (mode == syncMode) return;
+    syncMode = mode;
+    _holdLine = -1;
+    wordIndex = _firstUntimedWord(tagIndex);
+    notifyListeners();
+  }
+
+  int _firstUntimedWord(int line) {
+    if (line < 0 || line >= lines.length) return 0;
+    final w = lines[line].words;
+    if (w == null) return 0;
+    final i = w.indexWhere((e) => e == null);
+    return i == -1 ? 0 : i;
+  }
+
+  bool tagNextWord() {
+    _holdLine = -1;
+    return _stampWord(holding: false);
+  }
+
+  bool beginHeldWord() => _stampWord(holding: true);
+
+  void endHeldWord() {
+    final li = _holdLine, wi = _holdWord, start = _holdStart;
+    _holdLine = -1;
+    if (li < 0 || li >= lines.length) return;
+    final timing = lines[li].words?[wi];
+    if (timing == null || timing.start != start) return;
+    final end = livePosition;
+    final updated = lines[li].withWordEnd(wi, end);
+    if (identical(updated, lines[li])) return;
+    lines[li] = updated;
+    notifyListeners();
+  }
+
+  bool _stampWord({required bool holding}) {
+    _skipWordlessLines();
+    if (tagIndex >= lines.length) return false;
+    final line = lines[tagIndex];
+    if (wordIndex >= line.wordCount) wordIndex = 0;
+    final at = livePosition;
+
+    _push(_TagAction(tagIndex, line, tagIndex, wordIndex));
+    lines[tagIndex] = line.withWordStart(wordIndex, at);
+    if (holding) {
+      _holdLine = tagIndex;
+      _holdWord = wordIndex;
+      _holdStart = at;
+    }
+
+    wordIndex++;
+    if (wordIndex >= line.wordCount) {
+      tagIndex++;
+      wordIndex = 0;
+      _skipWordlessLines();
+    }
+    notifyListeners();
+    return true;
+  }
+
+  void _skipWordlessLines() {
+    while (tagIndex < lines.length && lines[tagIndex].wordCount == 0) {
+      tagIndex++;
+      wordIndex = 0;
+    }
+  }
+
+  void setWordCursor(int line, int word) {
+    if (line < 0 || line >= lines.length) return;
+    tagIndex = line;
+    wordIndex = word.clamp(
+      0,
+      lines[line].wordCount == 0 ? 0 : lines[line].wordCount - 1,
+    );
+    _holdLine = -1;
+    final w = lines[line].words;
+    Duration? target;
+    if (w != null && wordIndex < w.length) target = w[wordIndex]?.start;
+    if (target == null && w != null && wordIndex > 0) {
+      target = w[wordIndex - 1]?.start;
+    }
+    target ??= lines[line].timestamp;
+    if (target != null) seek(target);
+    notifyListeners();
+  }
+
+  int get totalWords => lines.fold(0, (n, l) => n + l.wordCount);
+  int get timedWords => lines.fold(0, (n, l) => n + l.timedWordCount);
+  bool get hasWordTimings => lines.any((l) => l.hasWordTimings);
 
   bool undoLast() {
     if (_undoStack.isEmpty) return false;
     final action = _undoStack.removeLast();
     switch (action) {
       case _TagAction a:
-        lines[a.index] = a.previousTimestamp != null
-            ? lines[a.index].copyWith(timestamp: a.previousTimestamp)
-            : lines[a.index].copyWith(clearTimestamp: true);
-        tagIndex = a.index;
+        lines[a.index] = a.previous;
+        tagIndex = a.previousTagIndex;
+        wordIndex = a.previousWordIndex;
+        _holdLine = -1;
       case _EditAction a:
-        lines[a.index] = lines[a.index].copyWith(text: a.previousText);
+        lines[a.index] = a.previous;
       case _DeleteAction a:
         lines.insert(a.index, a.line);
         if (tagIndex >= a.index) {
@@ -410,21 +472,33 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
 
   void setTagIndex(int index) {
     tagIndex = index.clamp(0, lines.length);
+    wordIndex = 0;
+    _holdLine = -1;
     notifyListeners();
   }
 
   void editLine(int index, String newText) {
     if (index < 0 || index >= lines.length) return;
-    _push(_EditAction(index, lines[index].text));
-    lines[index] = lines[index].copyWith(text: newText);
+    final old = lines[index];
+    _push(_EditAction(index, old));
+    final sameWords = splitWords(newText).length == old.wordCount;
+    lines[index] = LrcLine(
+      text: newText,
+      timestamp: old.timestamp,
+      words: sameWords ? old.words : null,
+    );
+    if (index == tagIndex && wordIndex >= lines[index].wordCount) wordIndex = 0;
     notifyListeners();
   }
 
   void deleteLine(int index) {
     if (index < 0 || index >= lines.length) return;
     _push(_DeleteAction(index, lines[index]));
+    final cursorWasOnIt = tagIndex == index;
     lines.removeAt(index);
     if (tagIndex > index) tagIndex = (tagIndex - 1).clamp(0, lines.length);
+    if (cursorWasOnIt) wordIndex = 0;
+    _holdLine = -1;
     for (var i = _undoStack.length - 1; i >= 0; i--) {
       final a = _undoStack[i];
       if ((a is _TagAction && a.index == index) ||
@@ -465,6 +539,8 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
   void resetAllTags() {
     lines = lines.map((l) => l.copyWith(clearTimestamp: true)).toList();
     tagIndex = 0;
+    wordIndex = 0;
+    _holdLine = -1;
     _undoStack.clear();
     notifyListeners();
   }
@@ -473,45 +549,38 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
     lines = [];
     lyricsRaw = null;
     tagIndex = 0;
+    wordIndex = 0;
+    _holdLine = -1;
     _undoStack.clear();
     notifyListeners();
   }
 
-  String buildLrc({int offsetMs = 0, bool minimal = false}) {
-    final buf = StringBuffer();
-    if (!minimal) {
-      if (_artist.isNotEmpty) buf.writeln('[ar:$_artist]');
-      if (_album.isNotEmpty) buf.writeln('[al:$_album]');
-      if (_title.isNotEmpty) buf.writeln('[ti:$_title]');
-      if (_by.isNotEmpty) buf.writeln('[by:$_by]');
-      if (audioDuration > Duration.zero) {
-        buf.writeln('[length:${formatDuration(audioDuration)}]');
-      }
-      buf.writeln();
-    }
-    final sorted = [...lines]
-      ..sort((a, b) {
-        if (a.timestamp == null && b.timestamp == null) return 0;
-        if (a.timestamp == null) return 1;
-        if (b.timestamp == null) return -1;
-        return a.timestamp!.compareTo(b.timestamp!);
-      });
-    for (final line in sorted) {
-      if (line.timestamp != null && offsetMs != 0) {
-        final shifted = Duration(
-          milliseconds: (line.timestamp!.inMilliseconds + offsetMs).clamp(
-            0,
-            9999999,
-          ),
-        );
-        final shiftedLine = line.copyWith(timestamp: shifted);
-        buf.writeln('${shiftedLine.lrcTimestamp}${line.text}');
-      } else {
-        buf.writeln('${line.lrcTimestamp}${line.text}');
-      }
-    }
-    return buf.toString();
-  }
+  LyricsMeta get _meta => LyricsMeta(
+    title: _title,
+    artist: _artist,
+    album: _album,
+    by: _by,
+    length: audioDuration,
+  );
+
+  String buildLrc({int offsetMs = 0, bool minimal = false}) =>
+      buildLrcText(lines, meta: _meta, offsetMs: offsetMs, minimal: minimal);
+
+  String buildExport(
+    ExportFormat format, {
+    int offsetMs = 0,
+    bool minimal = false,
+  }) => switch (format) {
+    ExportFormat.lrc => buildLrc(offsetMs: offsetMs, minimal: minimal),
+    ExportFormat.elrc => buildLrcText(
+      lines,
+      meta: _meta,
+      offsetMs: offsetMs,
+      minimal: minimal,
+      enhanced: true,
+    ),
+    ExportFormat.ttml => buildTtmlText(lines, meta: _meta, offsetMs: offsetMs),
+  };
 
   static const _draftKey = 'lrc_r_draft';
 
@@ -539,9 +608,21 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
         'by': _by,
         'audioName': audioName,
         'tagIndex': tagIndex,
+        'wordIndex': wordIndex,
+        'syncMode': syncMode.name,
         'lines': lines
             .map(
-              (l) => {'text': l.text, 'timestamp': l.timestamp?.inMilliseconds},
+              (l) => {
+                'text': l.text,
+                'timestamp': l.timestamp?.inMilliseconds,
+                if (l.words != null)
+                  'words': [
+                    for (final w in l.words!)
+                      w == null
+                          ? null
+                          : [w.start.inMilliseconds, w.end?.inMilliseconds],
+                  ],
+              },
             )
             .toList(),
       };
@@ -566,14 +647,34 @@ class LrcSession extends ChangeNotifier with WidgetsBindingObserver {
       lines = linesJson.map((e) {
         final map = e as Map<String, dynamic>;
         final ms = map['timestamp'] as int?;
+        final text = map['text'] as String? ?? '';
+        final wordsJson = map['words'] as List?;
+        List<WordTiming?>? words;
+        if (wordsJson != null && wordsJson.length == splitWords(text).length) {
+          words = [
+            for (final w in wordsJson)
+              w == null
+                  ? null
+                  : WordTiming(
+                      Duration(milliseconds: (w as List)[0] as int),
+                      w[1] == null ? null : Duration(milliseconds: w[1] as int),
+                    ),
+          ];
+        }
         return LrcLine(
-          text: map['text'] as String? ?? '',
+          text: text,
           timestamp: ms != null ? Duration(milliseconds: ms) : null,
+          words: ms != null ? words : null,
         );
       }).toList();
 
       tagIndex = (json['tagIndex'] as int?) ?? 0;
       tagIndex = tagIndex.clamp(0, lines.length);
+      wordIndex = (json['wordIndex'] as int?) ?? 0;
+      syncMode = json['syncMode'] == SyncMode.word.name
+          ? SyncMode.word
+          : SyncMode.line;
+      _holdLine = -1;
       _undoStack.clear();
       notifyListeners();
       return true;
