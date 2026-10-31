@@ -15,13 +15,7 @@ const kAudioExtensions = <String>{
   'alac',
 };
 
-enum LyricsStatus {
-  synced,
-
-  plainOnly,
-
-  missing,
-}
+enum LyricsStatus { synced, plainOnly, missing }
 
 @immutable
 class LibraryTrack {
@@ -43,7 +37,10 @@ class LibraryTrack {
   String get baseName => name.replaceAll(RegExp(r'\.[^.]+$'), '');
 
   String get lrcPath => _swapExtension(path, 'lrc');
+  String get elrcPath => _swapExtension(path, 'elrc');
   String get txtPath => _swapExtension(path, 'txt');
+
+  String lyricsPathFor(String extension) => _swapExtension(path, extension);
 
   LibraryTrack withStatus(LyricsStatus s) =>
       LibraryTrack(path: path, name: name, folder: folder, status: s);
@@ -87,7 +84,7 @@ List<LibraryTrack> _scanSync(String rootPath) {
         final ext = _extension(n);
         if (kAudioExtensions.contains(ext)) {
           audio.add(e.path);
-        } else if (ext == 'lrc') {
+        } else if (ext == 'lrc' || ext == 'elrc') {
           lyricStems[_stem(e.path)] = LyricsStatus.synced;
         } else if (ext == 'txt') {
           lyricStems.putIfAbsent(_stem(e.path), () => LyricsStatus.plainOnly);
